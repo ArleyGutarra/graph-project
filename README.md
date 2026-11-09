@@ -15,6 +15,15 @@ npm install
 npm run dev
 ```
 
+**Visualización y testeo de la Aplicación**
+```
+# 1. Levantar el servidor local
+npm run dev
+
+# 2. Probar localmente la aplicación
+> Copiar y pegar la dirección del servidor en el navegador (algo como http://localhost:5173/) 
+```
+
 **Trabajo con ramas**
 ```
 # 1. Actualizar la información de las ramas remotas
