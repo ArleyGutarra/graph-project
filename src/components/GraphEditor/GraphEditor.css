@@ -1,0 +1,359 @@
+/* ==============================
+   GRAPH EDITOR - GENERAL
+============================== */
+
+.graph-editor {
+    --color-primary: #991111;
+    --color-map: #a8a8a8;
+    --color-border: #e2e2e2;
+    --color-background: #ffffff;
+    --color-surface: #f8f8f9;
+    --color-text: #292929;
+    --color-muted: #777777;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+
+    width: 100%;
+    min-height: 650px;
+
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+
+    overflow: hidden;
+    color: var(--color-text);
+    font-family: Arial, sans-serif;
+}
+
+/* ==============================
+   MAIN WORKSPACE
+============================== */
+
+.workspace {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 35px 30px;
+    min-width: 0;
+}
+
+/* Selectors */
+
+.workspace__selectors {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 55px;
+
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.selector-group {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.selector-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-muted);
+}
+
+.selector-group select {
+    min-width: 135px;
+    padding: 9px 12px;
+
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    font-size: 14px;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+/* Graph container */
+
+.workspace__graph {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: min(100%, 500px);
+    aspect-ratio: 4 / 3;
+
+    padding: 15px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+}
+
+.graph-view {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* ==============================
+   GRAPH SVG
+============================== */
+
+.graph-view__map line {
+    stroke: var(--color-map);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.graph-view__edges line {
+    stroke: var(--color-primary);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.graph-view__nodes circle {
+    fill: var(--color-primary);
+    stroke: white;
+    stroke-width: 2;
+}
+
+.graph-view__numbers {
+    fill: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+}
+
+.graph-view__labels {
+    fill: var(--color-text);
+    font-family: Georgia, serif;
+    font-size: 21px;
+    font-style: italic;
+}
+
+/* ==============================
+   PLAYBACK CONTROLS
+============================== */
+
+.playback-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    margin-top: 20px;
+}
+
+.control-button,
+.play-button {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    background: white;
+    color: var(--color-text);
+
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.control-button {
+    width: 38px;
+    height: 36px;
+    font-size: 22px;
+}
+
+.play-button {
+    min-width: 125px;
+    height: 36px;
+    padding: 0 15px;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.control-button:hover,
+.play-button:hover {
+    background: var(--color-surface);
+    border-color: #bcbcbc;
+}
+
+/* ==============================
+   TIMELINE
+============================== */
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    width: min(100%, 500px);
+    margin-top: 28px;
+}
+
+.timeline__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    font-size: 13px;
+    color: var(--color-muted);
+    cursor: pointer;
+}
+
+.timeline__checkbox input {
+    accent-color: var(--color-primary);
+    width: 16px;
+    height: 16px;
+}
+
+.timeline__frames {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+
+    width: 100%;
+}
+
+.timeline__frame {
+    height: 28px;
+    background: #4775c1;
+    border-radius: 3px;
+
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.timeline__frame:hover {
+    background: #315b9f;
+}
+
+/* ==============================
+   MOVES PANEL
+============================== */
+
+.moves-panel {
+    position: relative;
+
+    padding: 25px 20px;
+    border-left: 1px solid var(--color-border);
+
+    background: var(--color-surface);
+}
+
+.moves-panel__collapse {
+    position: absolute;
+    top: 22px;
+    left: -1px;
+
+    width: 27px;
+    height: 35px;
+
+    border: 1px solid var(--color-border);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+
+    background: white;
+    color: var(--color-muted);
+    font-size: 20px;
+
+    cursor: pointer;
+}
+
+.moves-panel__content {
+    padding-top: 24px;
+}
+
+.moves-panel__header h2 {
+    margin: 0 0 18px;
+
+    color: var(--color-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.moves-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.move-item {
+    width: 100%;
+    min-height: 42px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    background: white;
+    color: var(--color-primary);
+
+    font-family: Georgia, serif;
+    font-size: 19px;
+
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.move-item:hover {
+    background: #fff4f4;
+    border-color: #d9aaaa;
+}
+
+.move-item--add {
+    color: var(--color-muted);
+    font-family: Arial, sans-serif;
+    font-size: 23px;
+}
+
+/* ==============================
+   RESPONSIVE
+============================== */
+
+@media (max-width: 700px) {
+    .graph-editor {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace {
+        padding: 25px 15px;
+    }
+
+    .workspace__selectors {
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .selector-group select {
+        min-width: 120px;
+    }
+
+    .moves-panel {
+        border-left: none;
+        border-top: 1px solid var(--color-border);
+        padding: 20px;
+    }
+
+    .moves-panel__collapse {
+        display: none;
+    }
+
+    .moves-panel__content {
+        padding-top: 0;
+    }
+
+    .moves-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .move-item {
+        flex: 1;
+        min-width: 65px;
+    }
+}
