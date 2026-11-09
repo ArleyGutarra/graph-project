@@ -41,6 +41,12 @@ git commit -m "Descripción de los cambios"
 # 8. Subir su rama a GitHub
 git push -u origin feature/nombre-funcionalidad
 ```
+### Basic Layout
+
+A continuación, un esquema básico para una primera versión de la visualización de la página web. 
+
+<img width="1111" height="703" alt="image" src="https://github.com/user-attachments/assets/9a125970-d6f4-446b-b71f-ad93511ece8f" />
+
 
 ### React + Vite
 
