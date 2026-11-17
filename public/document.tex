@@ -1,0 +1,180 @@
+\documentclass[final]{beamer}
+
+\usepackage[orientation=portrait,size=a0,scale=1.4]{beamerposter}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{lmodern}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{}
+\setbeamertemplate{blocks}[rounded][shadow=true]
+
+\setbeamercolor{block title}{bg=blue!15,fg=black}
+\setbeamercolor{block body}{bg=white,fg=black}
+\setbeamerfont{block title}{size=\large,series=\bfseries}
+\setbeamerfont{block body}{size=\normalsize}
+
+\newcommand{\Prob}{\mathbb{P}}
+
+\begin{document}
+
+\begin{frame}[t]
+
+% ================= PORTADA =================
+\begin{center}
+{\VeryHuge\bfseries Ergodicidad y convergencia en redes espacio-temporales\par}
+\vspace{0.35cm}
+{\Large VI Congreso Internacional Multidisciplinario de Matemática\par}
+\vspace{0.35cm}
+{\large Luis Andre Garro Hernandez, Aldo Abel Valeriano Macuri, Dire Daniel Espinal Pecho, Arley Ricardo Gutarra Inga\par}
+{\large Universidad Nacional de Ingeniería\par}
+{\large \texttt{luis.garro.contacto@gmail.com}\par}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{columns}[t]
+
+% ================= COLUMNA IZQUIERDA =================
+\begin{column}{0.48\paperwidth}
+
+\begin{block}{01 Introducción y objetivo}
+\textbf{Problema.} Dado un grafo temporal \(G_t=(V,E_t)\), donde todo \(v_i\in V(G)\) tiene una posición \(p_i(t)\in V(X)\) y pertenece a un conjunto de color \(C_t\subseteq V(G)\), ¿cómo influyen la dinámica temporal de los enlaces en el comportamiento del sistema a largo plazo?
+
+\vspace{0.3cm}
+\textbf{Objetivo.} Mostrar que, bajo ciertas condiciones, el modelo converge a una única distribución estacionaria \(\pi^*\).
+\end{block}
+
+\begin{block}{02 Marco teórico}
+\textbf{Definiciones y notación.}
+
+\vspace{0.2cm}
+\textbf{Conexión y desconexión.} Para todo instante \(t\) y par \(v_i,v_j\in V(G)\):
+\[
+\{v_i,v_j\}\in E(G_t)\cap \{p_i(t),p_j(t)\}\in E(X)
+\;\Longrightarrow\;
+\Prob\bigl(\{v_i,v_j\}\in E(G_t)\bigr)
+=
+\frac{(d_i^-(v_j)+1)(d_i^-(v_j)+1)}{(n+1)^2}.
+\]
+\[
+\{v_i,v_j\}\in E(G_t)\cap \{p_i(t),p_j(t)\}\notin E(X)
+\;\Longrightarrow\;
+\Prob\bigl(\{v_i,v_j\}\in E(G_t)\bigr)
+=
+1-\frac{d_i^-(v_j)d_i^-(v_j)}{n^2}.
+\]
+
+\vspace{0.2cm}
+\textbf{Coloración.} \(N_t,N_v\in V(G)\):
+\[
+\Prob\left[v\in \bigcup_{i=0}^{c}C_{t_i}\right]=1,
+\qquad
+\Prob\left[v\in C_{t_i}\cap C_{t_j}\right]=0,
+\quad \forall i\ne j.
+\]
+
+\vspace{0.2cm}
+\textbf{Con pesos y probabilidad de transición:}
+\[
+w_j(t)=|N^c_G(v)\cap C_{t_i}|+\alpha\,\mathbf{1}_{\{p_v\in C_{t_i}\}},
+\]
+\[
+\Prob[v\in C_{t_i}]
+=
+k\,\mathbf{1}_{\{\nu=0\}}+(1-k)w_j(t),
+\quad v\in C_{t_i}.
+\]
+
+\vspace{0.2cm}
+\textbf{Desplazamiento.} En \(t^+\to(t+1)^-\), cada \(v_i\in V(G)\) elige uniformemente una posición destino
+\[
+x_j\in N_X(p_{t_i}(v))\cup\{p_{t_i}(v)\}
+\]
+y aplica la transposición espacial
+\[
+\sigma_{i,t}=(p_{t_i}(v_j)\;x_j)\in S_m.
+\]
+La nueva configuración resulta de la composición ordenada
+\[
+\sigma_t=\sigma_{n,t}\circ\cdots\circ\sigma_{1,t}.
+\]
+
+\vspace{0.2cm}
+\textbf{Hipótesis.} El croquis \(X\) es finito, conexo \((X\ne K_m)\), \(k\in(0,1)\) y \(\alpha>0\) con \(C_i^X\ne\varnothing\) para todo \(i\in\{1,\dots,c\}\).
+
+\vspace{0.2cm}
+\textbf{Antecedentes.} Los grafos temporales discretos se modelan mediante secuencias de instantáneas [1]; los modelos coevolutivos analizan el consenso cuando red y opiniones cambian juntas [2].
+\end{block}
+
+\begin{block}{03 Método o demostración}
+El comportamiento asintótico del sistema queda unívocamente determinado por la \(4\)-tupla
+\[
+(X,\{C_i^X\},k,\alpha),
+\]
+garantizando un equilibrio estadístico único independiente de las condiciones iniciales.
+
+\vspace{0.3cm}
+La demostración se divide en tres partes:
+\begin{enumerate}
+\item \textbf{Cadena de Markov finita:} se muestra que el conjunto de estados posibles \(\Omega\) es finito y que se cumple la propiedad de pérdida de memoria.
+\item \textbf{Irreducibilidad:} se define explícitamente una secuencia finita de pasos para llevar un estado \(S_1\) a otro \(S_2\).
+\item \textbf{Aperiodicidad:} como la probabilidad de que un estado \(S\) no cambie es positiva, se concluye la aperiodicidad.
+\end{enumerate}
+\end{block}
+
+\end{column}
+
+% ================= COLUMNA DERECHA =================
+\begin{column}{0.48\paperwidth}
+
+\begin{block}{04 Resultados principales}
+\textbf{Teorema (Ergodicidad y equilibrio estadístico único).}
+Si el croquis \(X\) es finito, conexo \((X\ne K_m)\), \(k\in(0,1)\) y \(\alpha>0\) con \(C_i^X\ne\varnothing\) para todo \(i\in\{1,\dots,c\}\), entonces \(\{D_t\}_{t\ge 0}\) es una cadena de Markov finita, irreducible y aperiódica. Por lo tanto, existe una única distribución estacionaria \(\pi^*\) tal que, para cualquier estado inicial \(\pi_0\),
+\[
+\lim_{t\to\infty}\pi_0P^t=\pi^*.
+\]
+
+\vspace{0.3cm}
+\textbf{Interpretación.} El equilibrio alcanzado es de naturaleza estadística y no estática: el diagrama nunca deja de evolucionar, pero la frecuencia con la que visita cada configuración \(S\in\Omega\) converge a una distribución fija \(\pi^*\), completamente independiente de la red y coloración iniciales.
+\end{block}
+
+\begin{figure}
+\centering
+\IfFileExists{figura_visualizacion.png}{%
+  \includegraphics[width=0.95\linewidth]{figura_visualizacion.png}%
+}{%
+  \fbox{\parbox{0.9\linewidth}{\centering
+  Coloque aquí el archivo \texttt{figura\_visualizacion.png} con la visualización del póster.}}
+}
+\caption{Visualización con \(X=C_6\) y los estados iniciales \(G^{(1)}=K_6\), \(G^{(2)}=K_{1,5}\) y \(G^{(3)}=K_6\), con coloraciones unánimes \(C_1\), \(C_2\) y \(C_6\), respectivamente.}
+\end{figure}
+
+\begin{block}{05 Conclusiones}
+Los grafos temporales discretos modelan mediante secuencias de instantáneas [1], mientras que los modelos coevolutivos analizan el consenso cuando red y opiniones cambian juntas [2].
+
+\vspace{0.2cm}
+El comportamiento asintótico del sistema queda unívocamente determinado por la \(4\)-tupla \((X,\{C_i^X\},k,\alpha)\), garantizando un equilibrio estadístico único independiente de las condiciones iniciales.
+
+\vspace{0.2cm}
+\textbf{Trabajo futuro.} Estudiar el problema inverso al fijar \((X,\{C_i^X\})\): determinar si distintos pares \((k,\alpha)\) pueden inducir una misma distribución estacionaria \(\pi^*\) y caracterizar la geometría de dichas curvas de nivel en el plano de parámetros.
+\end{block}
+
+\begin{block}{06 Referencias}
+\begin{enumerate}
+\item D. Wu, Y. Xu, X. Lin, W. Zhang, and Y. Zhang, \emph{Understanding Evolving Graph Structures for Large Discrete-Time Dynamic Graph Representation}, Proc. VLDB Endow., 19(5), 862--875 (2026).
+\item N. Djurdjevac Conrad, N. Q. Vu, and S. Nagel, \emph{Co-evolving networks for opinion and social dynamics in agent-based models}, Chaos, vol. 34, no. 9, p. 093116, 2024. arXiv:2407.00145 (2024).
+\end{enumerate}
+\end{block}
+
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+\end{document}

@@ -1,0 +1,773 @@
+/* ============================================================
+   SIMULACIÓN · fondo oscuro sobrio
+   · Escenario: croquis transparente + nodos con aro del color
+     de su posición en X y núcleo del color del vértice.
+   · Estadística: estilo formal (sin brillos ni animaciones).
+   ============================================================ */
+
+/* ---------- Rejilla general ---------- */
+
+.simulation {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+
+  color: var(--text);
+}
+
+.simulation__sidebar {
+  position: sticky;
+  top: 14px;
+}
+
+.simulation__content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ---------- Superficies ---------- */
+
+.panel,
+.chart,
+.experiment,
+.reference,
+.simulation__stage {
+  position: relative;
+  background: linear-gradient(180deg, rgba(17, 15, 21, 0.95), rgba(10, 9, 13, 0.97));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Filete de acento discreto (sin brillo) */
+.panel::before,
+.reference::before,
+.simulation__stage::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  margin-bottom: 14px;
+  background: var(--red-deep);
+  box-shadow: none;
+}
+
+.simulation__stage::before {
+  width: 56px;
+  margin-bottom: 12px;
+}
+
+/* Las tarjetas estadísticas llevan una regla neutra */
+.chart::before,
+.experiment::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.02));
+  box-shadow: none;
+}
+
+/* ---------- Panel de parámetros ---------- */
+
+.panel {
+  padding: 18px;
+}
+
+.panel__section {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.panel__title {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a8757b;
+  text-shadow: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  color: #a5a2ad;
+  font-weight: 600;
+}
+
+.field__label strong {
+  font-family: var(--mono);
+  color: #dcd9e2;
+}
+
+.field__label em {
+  color: #6f6b77;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11.5px;
+  font-family: var(--mono);
+}
+
+.field select,
+.field input[type='number'] {
+  width: 100%;
+  padding: 9px 11px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.field select:hover,
+.field input[type='number']:hover {
+  border-color: #3d3946;
+}
+
+.field select:focus,
+.field input[type='number']:focus {
+  border-color: var(--red-soft);
+  outline: none;
+}
+
+/* Sliders */
+.field input[type='range'] {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #2a2732;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--red-soft);
+  border: 2px solid #0b0a0e;
+  cursor: pointer;
+}
+
+.field input[type='range']::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--red-soft);
+  border: 2px solid #0b0a0e;
+  cursor: pointer;
+}
+
+.field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.field--inline .field__label {
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
+.field--inline select {
+  width: auto;
+  min-width: 76px;
+}
+
+.panel__hint {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #7b7784;
+}
+
+/* ---------- Botones ---------- */
+
+.button {
+  padding: 9px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c9c6d0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--red-soft);
+  border-color: var(--red-soft);
+  color: #fff;
+}
+
+.button--primary:hover:not(:disabled) {
+  background: #b81c31;
+  border-color: #b81c31;
+}
+
+/* ---------- Escenario ---------- */
+
+.simulation__stage {
+  padding: 16px;
+}
+
+.stage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stage__badge {
+  padding: 4px 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: #9a97a3;
+}
+
+.stage__badge strong {
+  color: #e6e5ea;
+}
+
+.stage__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Núcleo del vértice: halo suave de su propio color */
+.stage__node-pulse {
+  animation: node-halo 3.8s ease-in-out infinite;
+}
+
+@keyframes node-halo {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  50% {
+    opacity: 0.34;
+  }
+}
+
+.stage__node-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* Croquis E(X): trazo tenue y transparente */
+.stage__sketch-edges line {
+  stroke: #4a1e26;
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: none;
+}
+
+/* Anillo exterior: color C^X_i de la posición en el croquis */
+.stage__ring {
+  stroke-width: 3;
+}
+
+/* Aristas de G: sólidas (no punteadas, para no confundirse con E(X)) */
+.stage__edge {
+  stroke: var(--red);
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: none;
+}
+
+.stage__position-labels text {
+  fill: #6f6a78;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-anchor: middle;
+}
+
+.stage__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: #9a97a3;
+}
+
+.stage__legend-title {
+  font-weight: 700;
+  color: #a8757b;
+  letter-spacing: 0.06em;
+}
+
+.stage__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage__legend-item i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.stage__legend-note {
+  color: #65606e;
+  font-size: 10.5px;
+}
+
+/* ---------- Reproducción ---------- */
+
+.playback {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.playback__button {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 12px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.playback__button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #3d3946;
+  color: #fff;
+}
+
+.playback__button--main {
+  min-width: 150px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #dcd9e2;
+}
+
+/* ============================================================
+   ESTADÍSTICA FORMAL · sin glow, sin neón, sin animaciones
+   ============================================================ */
+
+.simulation__charts,
+.experiment__charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 16px;
+}
+
+.chart {
+  padding: 16px;
+  min-width: 0;
+}
+
+.chart__title {
+  margin-bottom: 12px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #dcdce2;
+}
+
+.chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart__grid {
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 1;
+}
+
+.chart__axis {
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 1;
+}
+
+.chart__tick {
+  fill: #9aa0a6;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__axis-label {
+  fill: #7c8188;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 10.5px;
+}
+
+.chart__hint {
+  fill: #6f747b;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 11.5px;
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 11.5px;
+  color: #a6abb2;
+}
+
+.chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart__legend-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+}
+
+.chart__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 130px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 12.5px;
+  color: #8b9096;
+}
+
+/* ---------- Experimento de ergodicidad ---------- */
+
+.experiment {
+  padding: 18px;
+}
+
+.experiment__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.experiment__title {
+  margin: 0 0 6px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #e8e8ee;
+  text-shadow: none;
+}
+
+.experiment__subtitle {
+  margin: 0;
+  max-width: 680px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #9aa0a6;
+  letter-spacing: 0;
+}
+
+.experiment__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.experiment__progress {
+  position: relative;
+  height: 22px;
+  margin-top: 16px;
+  background: #14141a;
+  border: 1px solid #2a2a32;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.experiment__progress-bar {
+  position: relative;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  background: #8f2231;
+  box-shadow: none;
+  transition: width 0.15s linear;
+}
+
+.experiment__progress-bar::after {
+  content: none;
+}
+
+.experiment__progress-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #e8e8ee;
+  text-shadow: none;
+}
+
+.experiment__hint {
+  margin: 16px 0 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #9aa0a6;
+}
+
+.experiment__results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.experiment__verdict {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid #2a2a32;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.metric__label {
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 11.5px;
+  letter-spacing: 0;
+  color: #9aa0a6;
+}
+
+.metric__value {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: #e8e8ee;
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tabla de resultados ---------- */
+
+.sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-table th,
+.sim-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sim-table tbody tr {
+  transition: background 0.15s;
+}
+
+.sim-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sim-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa0a6;
+}
+
+.sim-table td {
+  color: #c9ccd2;
+}
+
+.sim-table__dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  vertical-align: middle;
+}
+
+/* ---------- Ficha del modelo ---------- */
+
+.reference {
+  padding: 18px;
+}
+
+.reference__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.reference__header h2 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #e8e8ee;
+  text-shadow: none;
+}
+
+.reference__header a {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #b6b2be;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+.reference__header a:hover {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
+.reference__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+.reference h3 {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #a8757b;
+}
+
+.reference .formula {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  background: #0a090d;
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--red-deep);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: #d9d5de;
+  overflow-x: auto;
+}
+
+.reference__note {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #8b8593;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .simulation {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation__sidebar {
+    position: static;
+  }
+
+  body {
+    padding: 16px 12px 40px;
+  }
+
+  .app-header h1 {
+    font-size: 17px;
+    letter-spacing: 0.1em;
+  }
+}

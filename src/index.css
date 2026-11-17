@@ -1,38 +1,159 @@
+/* ============================================================
+   TEMA · fondo oscuro sobrio (sin efectos neón)
+   ============================================================ */
+
+:root {
+  --bg: #060608;
+  --bg-deep: #08070a;
+  --panel: #0d0b10;
+  --panel-2: #120e14;
+  --line: #23202a;
+  --line-soft: #1b1821;
+  --red: #b81c31;
+  --red-deep: #7d1520;
+  --red-dark: #4a0d16;
+  --red-soft: #a3162a;
+  --text: #e6e5ea;
+  --text-dim: #9a97a3;
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace;
+}
+
 * {
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
-  padding: 30px;
+  padding: 26px 22px 60px;
 
-  background: #f2f3f5;
-  font-family: Arial, sans-serif;
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+
+  /* Rejilla tenue + destello rojo muy discreto */
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    radial-gradient(1100px 520px at 12% -12%, rgba(96, 14, 26, 0.3), transparent 62%),
+    radial-gradient(900px 460px at 105% -5%, rgba(255, 45, 63, 0.05), transparent 58%);
+  background-size: 46px 46px, 46px 46px, auto, auto;
+  background-attachment: fixed;
 }
 
 .app {
-  max-width: 1150px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
+/* ---------- Cabecera ---------- */
+
 .app-header {
-  margin-bottom: 25px;
+  margin-bottom: 22px;
+}
+
+.app-header__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.app-header__led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--red-soft);
+}
+
+@keyframes led-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .app-header h1 {
-  margin: 0 0 6px;
-  font-size: 25px;
-  color: #292929;
-}
-
-.app-header p {
   margin: 0;
-  color: #777;
-  font-size: 14px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f2f2f5;
+  text-shadow: none;
 }
 
-@media (max-width: 700px) {
-  body {
-    padding: 15px;
-  }
+.app-header__badge {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #9a97a3;
+}
+
+.app-header__subtitle {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+
+.app-header__link {
+  font-size: 12.5px;
+  color: #9a97a3;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 1px;
+}
+
+.app-header__link:hover {
+  color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+/* ---------- Scrollbar y selección ---------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a090c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3742;
+  border: 2px solid #0a090c;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #524e5c;
+}
+
+::selection {
+  background: rgba(184, 28, 49, 0.4);
+  color: #fff;
+}
+
+/* ---------- Foco ---------- */
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--red-soft);
+  outline-offset: 2px;
 }
