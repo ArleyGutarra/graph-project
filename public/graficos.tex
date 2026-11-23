@@ -1,0 +1,169 @@
+% =====================================================================
+%  Explicación sencilla de los gráficos del experimento de ergodicidad
+%  Archivo independiente: compilar con pdflatex (dos pasadas)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\geometry{margin=2.2cm}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+
+\definecolor{cPi}{RGB}{214,69,65}      % π₀⁽¹⁾
+\definecolor{cPi}{RGB}{232,163,47}     % π₀⁽²⁾
+\definecolor{cPi}{RGB}{60,140,220}     % π₀⁽³⁾
+\definecolor{idea}{RGB}{40,40,40}
+
+\newcommand{\E}{|E(G_t)|}
+\newcommand{\cond}[3]{\textcolor{#1}{\pi_0^{(#2)}}\,:#3}
+
+\tcbset{
+  myblock/.style={
+    colback=white,
+    colframe=blue!40!black,
+    fonttitle=\bfseries,
+    arc=2mm,
+    boxrule=0.8pt,
+    left=6pt,right=6pt,top=4pt,bottom=4pt
+  }
+}
+
+\title{Guía de lectura de los gráficos del experimento de ergodicidad}
+\author{Ergodicidad y convergencia en redes espacio-temporales}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=El experimento en tres frases]
+Tres simulaciones corren \textbf{en paralelo} con el mismo modelo
+\((X,\{C_i^X\},k,\alpha)\) pero con \textbf{tres puntos de partida distintos}:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Condición inicial} & \textbf{Grafo de partida} & \textbf{Color de partida} \\
+\midrule
+\cond{red}{1}{\(K_n+C_1\)}   & completo (todo conectado) & todos los vértices en \(C_1\) \\
+\cond{orange}{2}{\(K_{1,n-1}+C_2\)} & estrella            & todos los vértices en \(C_2\) \\
+\cond{blue}{3}{\(K_n+C_0\)}  & completo (todo conectado) & todos los vértices en \(C_0\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+La pregunta es: \textbf{¿el punto de partida cambia el resultado al final?}
+Si la respuesta es \emph{no}, decimos que el sistema es \textbf{ergódico}:
+existe una única distribución de equilibrio \(\pi^*\) y se llega a ella
+desde cualquier estado inicial \(\pi_0\).
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=1. Media de \(\E\) por condición inicial --- \textit{``¿hacia dónde camina cada simulación?''}]
+\textbf{Qué muestra.} Una línea por condición inicial. El eje horizontal es el
+tiempo (los pasos \(t\)) y el vertical es el \textbf{número promedio de aristas}
+del grafo en ese instante, promediado entre las 10 cadenas de cada condición.
+
+\textbf{Cómo leerlo.} Al inicio las tres líneas están separadas (la dispersión
+es de \textbf{10 aristas}): las condiciones de partida son muy distintas
+(\(K_n\) tiene \(\binom{n}{2}\) aristas, la estrella solo \(n-1\)). A medida que
+avanza el tiempo, las tres líneas se \textbf{mezclan} y quedan ondulando juntas
+en la misma banda, alrededor de \(\sim5\) aristas.
+
+\textbf{Para qué sirve.} Es la prueba visual de que las tres carreras
+\textbf{acaban en el mismo sitio}. El sistema olvida cómo empezó.
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=2--4. Frecuencia de \(C_0\), \(C_1\) y \(C_2\) --- \textit{``¿de qué color se pinta cada cosa?''}]
+\textbf{Qué muestra.} Tres gráficos (uno por color). El eje vertical va de 0 a 1
+y representa el \textbf{porcentaje de vértices} que tienen ese color en ese
+instante. Por ejemplo, una línea en \(0{,}77\) significa que el \(77\%\) de los
+puntos son de ese color.
+
+\textbf{Cómo leerlo.} En cada gráfico se superponen las tres condiciones. Al
+final todas se estabilizan en los mismos valores: un color domina
+(\(\approx0{,}77\)) y los otros dos rondan \(\approx0{,}12\) cada uno.
+
+\textbf{Para qué sirve.} Muestra que la \textbf{mezcla de colores} alcanza el
+mismo equilibrio sin importar con qué color empezaste. Nótese que esto es un
+equilibrio \emph{dinámico}: las líneas siguen temblando, pero su nivel promedio
+no cambia.
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=5. Distribución de \(\E\) en la ventana final --- \textit{``la fotografía del final''}]
+\textbf{Qué muestra.} Un \textbf{histograma}: las barras de la última ventana
+(últimos \(750\) pasos de las \(3000\)). Cada barra responde: ``¿cuántas veces
+apareció un grafo con \(m\) aristas?''. La altura total representa cuántas
+veces se observó esa cantidad de aristas.
+
+\textbf{Cómo leerlo.} La barra más alta está en \(5\) aristas: es lo más
+frecuente. Las tres condiciones dan barras \textbf{casi idénticas}, superpuestas,
+con media global de \(5{,}1\) aristas.
+
+\textbf{Para qué sirve.} Aquí el argumento es más fuerte que en el gráfico 1:
+no solo coinciden los \emph{promedios}, sino que coincide \textbf{toda la forma
+de la distribución}. Es la evidencia de que se llegó a la misma \(\pi^*\).
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=6. Dispersión entre condiciones (\(\max-\min\) de \(\langle\E\rangle\)) --- \textit{``el cronómetro del olvido''}]
+\textbf{Qué muestra.} Una sola línea gris. En cada instante se toman las tres
+medias de aristas y se calcula
+\[
+\max_{i}\langle\E\rangle_i \;-\; \min_{i}\langle\E\rangle_i,
+\]
+es decir, \textbf{cuánto se separan la condición ``mejor'' y la ``peor''} en ese
+momento.
+
+\textbf{Cómo leerlo.} Al principio la línea dispara (hasta \(\approx4{,}5\)
+aristas de diferencia) porque las condiciones iniciales son distintas. Después
+se queda \textbf{cerca de cero}, con vaivenes chiquitos.
+
+\textbf{Para qué sirve.} Es el \textbf{medidor numérico de la ergodicidad}:
+\begin{itemize}[nosep]
+  \item Dispersión al inicio: \(10\) aristas \(\Rightarrow\) las condiciones son
+        genuinamente distintas.
+  \item Dispersión en la ventana final: \(0{,}15\) aristas \(\Rightarrow\) casi
+        idénticas, dentro del ruido estadístico.
+\end{itemize}
+Si la línea se queda pegada abajo, las tres condiciones ya dicen lo mismo y el
+estado inicial fue olvidado.
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\begin{tcolorbox}[myblock,title=Los seis gráficos dicen lo mismo, desde ángulos distintos]
+\begin{center}
+\begin{tabular}{p{0.28\linewidth}p{0.62\linewidth}}
+\toprule
+\textbf{Gráfico} & \textbf{Qué responde en una frase} \\
+\midrule
+1. Media de \(\E\) & ¿Hacia dónde camina la simulación? (todas, al mismo sitio) \\
+2--4. Frecuencias de \(C_0,C_1,C_2\) & ¿Qué mezcla de colores queda al final? (la misma) \\
+5. Distribución de \(\E\) & ¿Se ve igual toda la distribución final? (sí, no solo la media) \\
+6. Dispersión \(\max-\min\) & ¿Cuánto tarda en olvidar el inicio? (se desploma a \(\approx0\)) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\textbf{Conclusión.} El equilibrio alcanzado es \textbf{estadístico, no
+estático}: el diagrama nunca deja de cambiar, pero la frecuencia con la que
+visita cada configuración converge a una distribución fija \(\pi^*\),
+\emph{completamente independiente de la red y la coloración iniciales}:
+\[
+\lim_{t\to\infty}\pi_0 P^{t}=\pi^{*}.
+\]
+\end{tcolorbox}
+
+\end{document}
