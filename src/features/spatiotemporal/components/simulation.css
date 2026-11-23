@@ -68,7 +68,55 @@
 .stage__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+}
+
+.stage__badges {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+}
+
+/* ---------- Conmutador de análisis: Grafo ↔ Croquis ---------- */
+
+.stage__view {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+}
+
+.stage__view-button {
+  padding: 4px 13px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #9a97a3;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stage__view-button:hover {
+  color: #e6e5ea;
+}
+
+.stage__view-button.is-active {
+  background: var(--red-soft);
+  color: #fff;
+}
+
+.stage__view-button:focus-visible {
+  outline: 2px solid var(--red-soft);
+  outline-offset: 2px;
 }
 
 .stage__badge {
@@ -141,6 +189,28 @@
   font-family: var(--mono);
   font-size: 12px;
   text-anchor: middle;
+}
+
+/* ---------- Vista «Croquis»: mapa del campus de fondo ---------- */
+
+/* Aristas E(X): ahora son el sujeto, con trazo oscuro sobre el papel.
+   Delgadas a propósito: lo que interesa es ver el comportamiento del grafo
+   dentro del mapa, y las aristas pueden cruzarse sin problema. */
+.stage__svg--croquis .stage__sketch-edges line {
+  stroke: #6b1622;
+  stroke-width: 4;
+  stroke-opacity: 0.92;
+}
+
+/* Nodo compacto: etiqueta proporcionada al radio reducido */
+.stage__svg--croquis .stage__node-label {
+  font-size: 14px;
+}
+
+/* Etiquetas de posición: oscuras y en negrita para que se lean sobre el mapa */
+.stage__svg--croquis .stage__position-labels text {
+  fill: #241f2b;
+  font-weight: 700;
 }
 
 .stage__legend {

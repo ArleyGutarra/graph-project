@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { subscript } from '../domain/initialState';
 import { useSimulation } from '../hooks/useSimulation';
 import ControlPanel from './ControlPanel';
@@ -28,6 +29,10 @@ export default function SimulationPage() {
   const sim = useSimulation();
   const { config, chain, sketch } = sim;
 
+  // Cambio de análisis del escenario: el grafo temporal G o el croquis X
+  // sobre el mapa del campus. Es un parámetro de vista, no del modelo.
+  const [stageView, setStageView] = useState('graph');
+
   const state = chain.state;
   const t = chain.t;
   const points = chain.history.points;
@@ -48,7 +53,14 @@ export default function SimulationPage() {
       {/* ---------- Fila 1 · escenario + gráficas ---------- */}
 
       <section className="simulation__stage cell--stage">
-        <GraphStage state={state} sketch={sketch} t={t} observables={latest} />
+        <GraphStage
+          state={state}
+          sketch={sketch}
+          t={t}
+          observables={latest}
+          view={stageView}
+          onViewChange={setStageView}
+        />
         <PlaybackBar
           playing={sim.playing}
           onToggle={sim.togglePlay}
