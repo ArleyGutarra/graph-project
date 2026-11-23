@@ -30,7 +30,8 @@ body,
 
 body {
   margin: 0;
-  padding: 12px 16px 16px;
+  /* Sin padding global: la portada va a sangre. El margen lo pone cada paso
+     con `.step--contained` y la barra de navegación. */
 
   color: var(--text);
   font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
@@ -46,17 +47,44 @@ body {
   background-attachment: fixed;
 }
 
+/* El contenedor ya no limita el ancho: la portada ocupa la pantalla completa
+   y cada paso se centra por su cuenta con `.step--contained`. */
 .app {
-  /* Ancho de una laptop (1366 px con márgenes): el layout se dimensiona
-     para que la cabecera + rejilla principal quepan en una pantalla 1366×768. */
+  margin: 0;
+}
+
+/* Pasos con contenido centrado (todo salvo la portada) */
+.step--contained {
   max-width: 1360px;
   margin: 0 auto;
+  padding: 12px 16px 0;
 }
 
 /* ---------- Portada (paso 1) ---------- */
 
+/* ---------- Fondo común a TODAS las secciones ---------- */
+
+.step {
+  position: relative;
+  /* Contexto de apilamiento: permite que `.step__bg` (z-index: -1) quede
+     detrás del contenido pero por encima del fondo de la página. */
+  isolation: isolate;
+}
+
 .step[hidden] {
   display: none;
+}
+
+/* Capa de fondo a toda la ventana con el mismo diseño que la portada:
+   degradado oscuro + destello rojo. La red de grafos animada va dentro. */
+.step__bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 700px at 50% 42%, rgba(96, 14, 26, 0.42), transparent 68%),
+    linear-gradient(180deg, #0a0810 0%, #060608 100%);
 }
 
 .hero {
@@ -64,15 +92,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: max(460px, calc(100vh - 104px));
+  /* A sangre: sin borde, sin redondeo, sin sombra y a lo ancho de la
+     ventana. 72 px es la barra de navegación inferior, para que portada +
+     botones quepan exactamente en 100vh. El fondo lo aporta `.step__bg`. */
+  min-height: max(460px, calc(100vh - 72px));
   padding: 48px 40px;
   overflow: hidden;
-  background:
-    radial-gradient(1200px 700px at 50% 42%, rgba(96, 14, 26, 0.42), transparent 68%),
-    linear-gradient(180deg, #0a0810 0%, #060608 100%);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
 /* Red de grafos decorativa de fondo */
@@ -169,8 +194,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-top: 14px;
-  padding: 14px 2px 6px;
+  max-width: 1360px;
+  margin: 14px auto 0;
+  padding: 14px 16px 6px;
   background: linear-gradient(180deg, rgba(6, 6, 8, 0), rgba(6, 6, 8, 0.95) 40%);
 }
 
@@ -216,7 +242,7 @@ body {
 .placeholder {
   position: relative;
   padding: 40px 36px 46px;
-  background: linear-gradient(180deg, rgba(17, 15, 21, 0.95), rgba(10, 9, 13, 0.97));
+  background: linear-gradient(180deg, rgba(17, 15, 21, 0.87), rgba(10, 9, 13, 0.93));
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -262,7 +288,7 @@ body {
   flex-direction: column;
   gap: 7px;
   padding: 15px 16px 17px;
-  background: linear-gradient(180deg, rgba(17, 15, 21, 0.95), rgba(10, 9, 13, 0.97));
+  background: linear-gradient(180deg, rgba(17, 15, 21, 0.87), rgba(10, 9, 13, 0.93));
   border: 1px solid var(--line);
   border-radius: 11px;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);

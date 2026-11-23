@@ -42,7 +42,9 @@
 .chart,
 .cell--controls {
   position: relative;
-  background: linear-gradient(180deg, rgba(17, 15, 21, 0.95), rgba(10, 9, 13, 0.97));
+  /* Semitransparentes a propósito: así se intuye la red de grafos del fondo
+     a través de las tarjetas, igual que en la portada. */
+  background: linear-gradient(180deg, rgba(17, 15, 21, 0.87), rgba(10, 9, 13, 0.93));
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -560,8 +562,12 @@
 }
 
 @media (max-width: 760px) {
-  body {
-    padding: 14px 12px 40px;
+  .step--contained {
+    padding: 14px 12px 0;
+  }
+
+  .wizard {
+    padding: 14px 12px 6px;
   }
 
   .simulation {

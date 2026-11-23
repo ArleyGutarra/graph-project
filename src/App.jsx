@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import BackgroundSection from './components/BackgroundSection';
 import FundamentosSection from './components/FundamentosSection';
-import SectionPlaceholder from './components/SectionPlaceholder';
+import GraphBackdrop from './components/GraphBackdrop';
 import SimulationPage from './features/spatiotemporal/components/SimulationPage';
 
 /** Orden de la presentación: de la portada a la simulación. */
 const STEPS = [
   { id: 'background', label: 'Background de presentación' },
   { id: 'fundamentos', label: 'Fundamentos matemáticos' },
-  { id: 'pasos', label: 'Pasos para la simulación' },
   { id: 'simulacion', label: 'Simulación' },
 ];
 
@@ -18,23 +17,30 @@ function App() {
   const goBack = () => setStep((current) => Math.max(0, current - 1));
   const goNext = () => setStep((current) => Math.min(STEPS.length - 1, current + 1));
 
-  const renderStep = (index, content) => (
+  // `contained` centra el contenido a 1360 px; la portada va a sangre.
+  // El fondo (`.step__bg`) se monta solo en el paso activo y ocupa toda la
+  // ventana, así TODAS las secciones comparten el mismo diseño de la portada.
+  const renderStep = (index, content, contained = false) => (
     <div
-      className="step"
+      className={`step${contained ? ' step--contained' : ''}`}
       role="region"
       aria-label={STEPS[index].label}
       hidden={step !== index}
     >
+      {step === index ? (
+        <div className="step__bg" aria-hidden="true">
+          <GraphBackdrop />
+        </div>
+      ) : null}
       {content}
     </div>
   );
 
   return (
     <div className="app">
-      {renderStep(0, <BackgroundSection active={step === 0} />)}
-      {renderStep(1, <FundamentosSection />)}
-      {renderStep(2, <SectionPlaceholder title="Pasos para la simulación" />)}
-      {renderStep(3, <SimulationPage />)}
+      {renderStep(0, <BackgroundSection />)}
+      {renderStep(1, <FundamentosSection />, true)}
+      {renderStep(2, <SimulationPage />, true)}
 
       <footer className="wizard">
         <button

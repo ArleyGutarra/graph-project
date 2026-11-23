@@ -1,13 +1,13 @@
-import GraphBackdrop from './GraphBackdrop';
-
 /**
- * Portada (paso 1): fondo de red de grafos + título centrado con tipografía
- * llamativa y el identificador del congreso.
+ * Portada (paso 1): el título centrado con tipografía llamativa y el
+ * identificador del congreso.
+ *
+ * El fondo (red de grafos animada + degradado) lo pone `.step__bg`, que App
+ * monta en TODOS los pasos, así la portada y el resto comparten diseño.
  */
-export default function BackgroundSection({ active }) {
+export default function BackgroundSection() {
   return (
     <section className="hero">
-      <GraphBackdrop active={active} />
       <div className="hero__veil" aria-hidden="true" />
 
       <div className="hero__content">

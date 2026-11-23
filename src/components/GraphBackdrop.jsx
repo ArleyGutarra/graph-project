@@ -9,7 +9,8 @@ import { useEffect, useRef } from 'react';
  *   aristas siguen a sus extremos: la red se mueve sin despegarse nunca.
  * - El bucle escribe directamente sobre los nodos ya montados (setAttribute),
  *   sin re-render de React a 60 fps.
- * - Se detiene cuando el paso no está activo y respeta `prefers-reduced-motion`.
+ * - App solo lo monta en el paso activo, así que solo hay una red animándose
+ *   a la vez, y respeta `prefers-reduced-motion`.
  */
 
 function makeRandom(seed) {
@@ -57,13 +58,8 @@ const motion = nodes.map(() => ({
   py: random() * Math.PI * 2,
 }));
 
-export default function GraphBackdrop({ active = true }) {
+export default function GraphBackdrop() {
   const svgRef = useRef(null);
-  const activeRef = useRef(active);
-
-  useEffect(() => {
-    activeRef.current = active;
-  }, [active]);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -82,7 +78,6 @@ export default function GraphBackdrop({ active = true }) {
     const frame = (now) => {
       raf = requestAnimationFrame(frame);
       if (!start) start = now;
-      if (!activeRef.current) return;
 
       const t = (now - start) / 1000;
 
