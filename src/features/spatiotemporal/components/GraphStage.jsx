@@ -8,9 +8,14 @@ import { colorOf, labelColorFor } from './theme';
  */
 export default function GraphStage({ state, sketch, t, observables }) {
   const m = sketch.size;
+  // Lienzo apaisado (500×280) para que el círculo quepa en la altura de una
+  // laptop (1366×768) sin que el grafo se encoja de más: el radio efectivo
+  // sobre pantalla (~109 px) supera al de la maqueta (~98 px).
   const cx = 250;
-  const cy = 162;
-  const radius = 118;
+  const cy = 136;
+  const radius = 104;
+  const ring = 24;
+  const node = 17;
 
   const layout = Array.from({ length: m }, (_, i) => {
     const angle = -Math.PI / 2 + (2 * Math.PI * i) / m;
@@ -48,7 +53,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
 
       <svg
         className="stage__svg"
-        viewBox="0 0 500 324"
+        viewBox="0 0 500 280"
         role="img"
         aria-label={`Grafo temporal sobre el croquis ${sketch.label} en el instante ${t}`}
       >
@@ -70,8 +75,8 @@ export default function GraphStage({ state, sketch, t, observables }) {
         </defs>
 
         {/* Fondo: rejilla técnica + halos */}
-        <rect x="0" y="0" width="500" height="324" rx="12" fill="url(#stage-bg)" />
-        <rect x="0" y="0" width="500" height="324" rx="12" fill="url(#stage-grid)" />
+        <rect x="0" y="0" width="500" height="280" rx="12" fill="url(#stage-bg)" />
+        <rect x="0" y="0" width="500" height="280" rx="12" fill="url(#stage-grid)" />
 
         {/* Aristas del croquis E(X) */}
         <g className="stage__sketch-edges">
@@ -97,7 +102,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
                 className="stage__ring"
                 cx={p.x}
                 cy={p.y}
-                r={22}
+                r={ring}
                 fill={ringColor}
                 fillOpacity={0.13}
                 stroke={ringColor}
@@ -121,12 +126,12 @@ export default function GraphStage({ state, sketch, t, observables }) {
             const color = colorOf(state.color[v]);
             return (
               <g key={`v-${v}`}>
-                <circle className="stage__node-pulse" cx={p.x} cy={p.y} r={17} fill={color} />
+                <circle className="stage__node-pulse" cx={p.x} cy={p.y} r={node + 6} fill={color} />
                 <circle
                   className="stage__node"
                   cx={p.x}
                   cy={p.y}
-                  r={13.5}
+                  r={node}
                   fill={color}
                   stroke="rgba(255,255,255,0.85)"
                   strokeWidth={1.5}
@@ -148,7 +153,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
         {/* Etiquetas de posición x_i */}
         <g className="stage__position-labels">
           {layout.map((p, i) => (
-            <text key={`lbl-${i}`} x={p.x} y={p.y + 36}>
+            <text key={`lbl-${i}`} x={p.x} y={p.y + ring + 11}>
               x{subscript(i)}
             </text>
           ))}

@@ -30,7 +30,7 @@ body,
 
 body {
   margin: 0;
-  padding: 26px 22px 60px;
+  padding: 12px 16px 16px;
 
   color: var(--text);
   font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
@@ -47,21 +47,23 @@ body {
 }
 
 .app {
-  max-width: 1240px;
+  /* Ancho de una laptop (1366 px con márgenes): el layout se dimensiona
+     para que la cabecera + rejilla principal quepan en una pantalla 1366×768. */
+  max-width: 1360px;
   margin: 0 auto;
 }
 
 /* ---------- Cabecera ---------- */
 
 .app-header {
-  margin-bottom: 22px;
+  margin-bottom: 10px;
 }
 
 .app-header__row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 11px;
+  min-height: 34px;
 }
 
 .app-header__led {
@@ -83,15 +85,21 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 21px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #f2f2f5;
   text-shadow: none;
 }
 
 .app-header__badge {
+  flex: 0 0 auto;
   padding: 4px 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
@@ -100,26 +108,28 @@ body {
   font-size: 11px;
   letter-spacing: 0.1em;
   color: #9a97a3;
+  white-space: nowrap;
 }
 
-.app-header__subtitle {
-  margin: 10px 0 0;
-  font-size: 12.5px;
-  letter-spacing: 0.02em;
-  color: var(--text-dim);
-}
-
-.app-header__link {
-  font-size: 12.5px;
+.app-header__fs {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 15px;
+  line-height: 1;
   color: #9a97a3;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding-bottom: 1px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.app-header__link:hover {
-  color: #ffffff;
-  border-bottom-color: #ffffff;
+.app-header__fs:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
 }
 
 /* ---------- Scrollbar y selección ---------- */

@@ -1,25 +1,32 @@
-import SimulationPage from "./features/spatiotemporal/components/SimulationPage";
+import { useCallback } from 'react';
+import SimulationPage from './features/spatiotemporal/components/SimulationPage';
 
 function App() {
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+  }, []);
+
   return (
     <div className="app">
       <header className="app-header">
         <div className="app-header__row">
           <span className="app-header__led" aria-hidden="true" />
-          <h1>Graph Simulator</h1>
+          <h1>Ergodicidad y convergencia en redes espacio-temporales</h1>
           <span className="app-header__badge">VI CIMM-UNI · 2026</span>
-          <a
-            className="app-header__link"
-            href="./index.html"
-            target="_blank"
-            rel="noreferrer"
+          <button
+            className="app-header__fs"
+            type="button"
+            onClick={toggleFullscreen}
+            title="Pantalla completa"
+            aria-label="Pantalla completa"
           >
-            Presentación 4:3 ↗
-          </a>
+            ⛶
+          </button>
         </div>
-        <p className="app-header__subtitle">
-          ergodicidad y convergencia en redes espacio-temporales · simulación del modelo del póster
-        </p>
       </header>
 
       <SimulationPage />

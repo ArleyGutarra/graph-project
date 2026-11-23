@@ -1,8 +1,10 @@
-import { GRAPH_PRESETS, POSITION_PRESETS, colorPresets, subscript } from '../domain/initialState';
+import { GRAPH_PRESETS, POSITION_PRESETS, colorPresets } from '../domain/initialState';
 import { SKETCH_TYPES } from '../domain/sketch';
 
 /**
- * Panel de parámetros: la 4-tupla (X, {C^X_i}, k, α) + estado inicial.
+ * Barra de parámetros horizontal (dos filas, a pie de página), tal como en la
+ * maqueta: la 4-tupla (X, {C^X_i}, k, α) + estado inicial π₀ + reproducción.
+ *
  * Los cambios de parámetros del modelo reinician la cadena (para que siga
  * siendo homogénea); los de vista no.
  */
@@ -26,12 +28,11 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
   };
 
   return (
-    <div className="panel">
-      <section className="panel__section">
-        <h3 className="panel__title">Croquis X</h3>
-
+    <div className="controls">
+      {/* Fila 1 · croquis X y parámetros del modelo */}
+      <div className="controls__row">
         <label className="field" htmlFor="sketch-type">
-          <span className="field__label">Forma</span>
+          <span className="field__label">Croquis X</span>
           <select id="sketch-type" value={config.sketchType} onChange={handleType}>
             {SKETCH_TYPES.map((type) => (
               <option key={type.id} value={type.id}>
@@ -58,7 +59,7 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
 
         <label className="field" htmlFor="color-count">
           <span className="field__label">
-            Colores c + 1 = <strong>{config.colorCount}</strong>
+            Colores c + 1 <strong>{config.colorCount}</strong>
           </span>
           <input
             id="color-count"
@@ -70,14 +71,10 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
             onChange={handleColorCount}
           />
         </label>
-      </section>
-
-      <section className="panel__section">
-        <h3 className="panel__title">Parámetros (k, α)</h3>
 
         <label className="field" htmlFor="param-k">
           <span className="field__label">
-            k = <strong>{config.k.toFixed(2)}</strong> <em>k ∈ (0,1)</em>
+            k <strong>{config.k.toFixed(2)}</strong>
           </span>
           <input
             id="param-k"
@@ -92,7 +89,7 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
 
         <label className="field" htmlFor="param-alpha">
           <span className="field__label">
-            α = <strong>{config.alpha.toFixed(1)}</strong> <em>α &gt; 0</em>
+            α <strong>{config.alpha.toFixed(1)}</strong>
           </span>
           <input
             id="param-alpha"
@@ -104,11 +101,25 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
             onChange={(e) => onModelParam({ alpha: Number(e.target.value) })}
           />
         </label>
-      </section>
 
-      <section className="panel__section">
-        <h3 className="panel__title">Estado inicial π₀</h3>
+        <label className="field" htmlFor="speed">
+          <span className="field__label">
+            Velocidad <strong>{config.speed}</strong>
+          </span>
+          <input
+            id="speed"
+            type="range"
+            min={1}
+            max={10}
+            step={1}
+            value={config.speed}
+            onChange={(e) => onViewParam({ speed: Number(e.target.value) })}
+          />
+        </label>
+      </div>
 
+      {/* Fila 2 · estado inicial π₀ + acciones */}
+      <div className="controls__row">
         <label className="field" htmlFor="initial-graph">
           <span className="field__label">Grafo G₀</span>
           <select
@@ -154,7 +165,7 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
           </select>
         </label>
 
-        <label className="field" htmlFor="seed">
+        <label className="field field--seed" htmlFor="seed">
           <span className="field__label">Semilla</span>
           <input
             id="seed"
@@ -166,34 +177,10 @@ export default function ControlPanel({ config, onModelParam, onViewParam, onRese
           />
         </label>
 
-        <button className="button button--primary" type="button" onClick={onReset}>
+        <button className="button button--primary controls__reset" type="button" onClick={onReset}>
           ↺ Reiniciar cadena
         </button>
-      </section>
-
-      <section className="panel__section">
-        <h3 className="panel__title">Reproducción</h3>
-
-        <label className="field" htmlFor="speed">
-          <span className="field__label">
-            Velocidad <strong>{config.speed}</strong> pasos/cuadro
-          </span>
-          <input
-            id="speed"
-            type="range"
-            min={1}
-            max={10}
-            step={1}
-            value={config.speed}
-            onChange={(e) => onViewParam({ speed: Number(e.target.value) })}
-          />
-        </label>
-      </section>
-
-      <p className="panel__hint">
-        Los colores disponibles son C₀ … C{subscript(config.colorCount - 1)}; el coloreado del
-        croquis C^X_i se asigna en round-robin para que C^X_i ≠ ∅.
-      </p>
+      </div>
     </div>
   );
 }
