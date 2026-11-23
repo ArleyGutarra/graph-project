@@ -13,7 +13,7 @@ export default function ModelReference() {
     <section className="reference">
       <div className="reference__header">
         <h2>Modelo de referencia</h2>
-        <a href="/document.tex" target="_blank" rel="noreferrer">
+        <a href="./document.tex" target="_blank" rel="noreferrer">
           document.tex (fuente del póster) ↗
         </a>
       </div>
