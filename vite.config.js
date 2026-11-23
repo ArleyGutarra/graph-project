@@ -4,9 +4,9 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Rutas relativas: obligatorio para GitHub Pages, donde la app vive en
-  // https://usuario.github.io/graph-project/ (no en la raíz del dominio).
-  base: './',
+  // GitHub Pages sirve la app bajo /graph-project/ (no en la raíz del dominio):
+  // https://direespinalp.github.io/graph-project/
+  base: '/graph-project/',
   plugins: [react()],
   build: {
     rollupOptions: {
