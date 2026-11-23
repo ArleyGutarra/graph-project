@@ -8,14 +8,14 @@ import { colorOf, labelColorFor } from './theme';
  */
 export default function GraphStage({ state, sketch, t, observables }) {
   const m = sketch.size;
-  // Lienzo apaisado (500×280) para que el círculo quepa en la altura de una
-  // laptop (1366×768) sin que el grafo se encoja de más: el radio efectivo
-  // sobre pantalla (~109 px) supera al de la maqueta (~98 px).
+  // Lienzo 500×400 dimensionado para que el grafo llame la atención desde el
+  // fondo de la sala: círculo de ~320 px de diámetro sobre pantalla, con nodos
+  // de ~46 px. Todo cabe en la altura de una laptop (1366×768) sin scroll.
   const cx = 250;
-  const cy = 136;
-  const radius = 104;
-  const ring = 24;
-  const node = 17;
+  const cy = 198;
+  const radius = 153;
+  const ring = 30;
+  const node = 22;
 
   const layout = Array.from({ length: m }, (_, i) => {
     const angle = -Math.PI / 2 + (2 * Math.PI * i) / m;
@@ -53,7 +53,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
 
       <svg
         className="stage__svg"
-        viewBox="0 0 500 280"
+        viewBox="0 0 500 400"
         role="img"
         aria-label={`Grafo temporal sobre el croquis ${sketch.label} en el instante ${t}`}
       >
@@ -75,8 +75,8 @@ export default function GraphStage({ state, sketch, t, observables }) {
         </defs>
 
         {/* Fondo: rejilla técnica + halos */}
-        <rect x="0" y="0" width="500" height="280" rx="12" fill="url(#stage-bg)" />
-        <rect x="0" y="0" width="500" height="280" rx="12" fill="url(#stage-grid)" />
+        <rect x="0" y="0" width="500" height="400" rx="12" fill="url(#stage-bg)" />
+        <rect x="0" y="0" width="500" height="400" rx="12" fill="url(#stage-grid)" />
 
         {/* Aristas del croquis E(X) */}
         <g className="stage__sketch-edges">
@@ -106,7 +106,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
                 fill={ringColor}
                 fillOpacity={0.13}
                 stroke={ringColor}
-                strokeWidth={3}
+                strokeWidth={4}
               />
             );
           })}
@@ -134,8 +134,8 @@ export default function GraphStage({ state, sketch, t, observables }) {
                   r={node}
                   fill={color}
                   stroke="rgba(255,255,255,0.85)"
-                  strokeWidth={1.5}
-                  style={{ filter: `drop-shadow(0 0 5px ${color})` }}
+                  strokeWidth={2}
+                  style={{ filter: `drop-shadow(0 0 7px ${color})` }}
                 />
                 <text
                   className="stage__node-label"
@@ -153,7 +153,7 @@ export default function GraphStage({ state, sketch, t, observables }) {
         {/* Etiquetas de posición x_i */}
         <g className="stage__position-labels">
           {layout.map((p, i) => (
-            <text key={`lbl-${i}`} x={p.x} y={p.y + ring + 11}>
+            <text key={`lbl-${i}`} x={p.x} y={p.y + ring + 13}>
               x{subscript(i)}
             </text>
           ))}
