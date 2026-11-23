@@ -10,7 +10,7 @@ function App() {
           <span className="app-header__badge">VI CIMM-UNI · 2026</span>
           <a
             className="app-header__link"
-            href="/presentacion.html"
+            href="./index.html"
             target="_blank"
             rel="noreferrer"
           >

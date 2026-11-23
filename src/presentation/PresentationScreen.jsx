@@ -82,6 +82,14 @@ export default function PresentationScreen() {
             <span className="presentation__led" aria-hidden="true" />
             <h1>Ergodicidad y convergencia en redes espacio-temporales</h1>
             <span className="presentation__badge">VI CIMM-UNI · 2026</span>
+            <a
+              className="presentation__link"
+              href="./simulacion.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Simulación ↗
+            </a>
             <button
               className="presentation__fs"
               type="button"

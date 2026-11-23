@@ -21,8 +21,33 @@ npm run dev
 npm run dev
 
 # 2. Probar localmente la aplicación
-> Copiar y pegar la dirección del servidor en el navegador (algo como http://localhost:5173/) 
+> Copiar y pegar la dirección del servidor en el navegador (algo como http://localhost:5173/)
+
+# Páginas disponibles:
+#   /                    → Presentación 4:3 (página de inicio, arranca sola)
+#   /simulacion.html     → Simulación interactiva completa
+#   /presentacion.html   → alias de la presentación (enlaces antiguos)
 ```
+
+## Despliegue en GitHub Pages
+
+El proyecto se publica **automáticamente** en
+`https://arleygutarra.github.io/graph-project/` mediante GitHub Actions
+(`.github/workflows/deploy.yml`): cada `push` a `main` ejecuta `npm run build`
+y publica la carpeta `dist/`.
+
+**Activación única (solo la primera vez):**
+```
+# 1. En GitHub: Settings → Pages
+# 2. En "Build and deployment" → Source: GitHub Actions
+# 3. Guardar
+```
+
+**Notas técnicas:**
+- `vite.config.js` usa `base: './'` (rutas relativas), obligatorio porque la
+  app vive bajo `/graph-project/` y no en la raíz del dominio.
+- Todos los enlaces entre páginas son relativos (`./simulacion.html`),
+  nunca absolutos (`/simulacion.html`), por la misma razón.
 
 **Trabajo con ramas**
 ```
