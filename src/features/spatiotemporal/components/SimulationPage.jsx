@@ -4,7 +4,6 @@ import ControlPanel from './ControlPanel';
 import PlaybackBar from './PlaybackBar';
 import GraphStage from './GraphStage';
 import TimeSeriesChart from './TimeSeriesChart';
-import ModelReference from './ModelReference';
 import { colorOf, CONDITION_COLORS } from './theme';
 import './simulation.css';
 
@@ -14,10 +13,10 @@ import './simulation.css';
  *
  *   fila 1 → escenario (izq., grafo grande) + dos gráficas de series (der.)
  *   fila 2 → barra de controles horizontal
- *   fila 3 → ficha del modelo
  *
  * Solo se muestra la simulación en vivo; el experimento de ergodicidad vive en
- * `engine/ergodicExperiment.js` (sin interfaz por ahora).
+ * `engine/ergodicExperiment.js` (sin interfaz por ahora) y la ficha con las
+ * fórmulas del modelo ya no forma parte de esta pantalla.
  *
  * Arquitectura por capas:
  *   domain/    → modelo puro (kernels de aristas, colores y desplazamiento)
@@ -88,12 +87,6 @@ export default function SimulationPage() {
           onViewParam={sim.setViewParam}
           onReset={sim.reset}
         />
-      </section>
-
-      {/* ---------- Ficha del modelo ---------- */}
-
-      <section className="cell--reference">
-        <ModelReference />
       </section>
     </main>
   );

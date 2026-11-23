@@ -11,10 +11,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // La presentación es la página de inicio.
+        // Único contenido del sitio: el simulador.
         index: fileURLToPath(new URL('./index.html', import.meta.url)),
         simulacion: fileURLToPath(new URL('./simulacion.html', import.meta.url)),
-        presentacion: fileURLToPath(new URL('./presentacion.html', import.meta.url)),
       },
     },
   },
