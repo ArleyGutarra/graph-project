@@ -15,6 +15,11 @@ function App() {
   const goBack = () => setStep((current) => Math.max(0, current - 1));
   const goNext = () => setStep((current) => Math.min(STEPS.length - 1, current + 1));
 
+  // El botón derecho NO se usa en ninguna parte de la aplicación: se cancela
+  // el menú contextual del navegador para que no aparezca sobre el grafo,
+  // las gráficas, los campos, etc.
+  const blockContextMenu = (event) => event.preventDefault();
+
   // `contained` centra el contenido a 1360 px; la portada va a sangre.
   // El fondo (`.step__bg`) se monta solo en el paso activo y ocupa toda la
   // ventana, así TODAS las secciones comparten el mismo diseño de la portada.
@@ -35,7 +40,7 @@ function App() {
   );
 
   return (
-    <div className="app">
+    <div className="app" onContextMenu={blockContextMenu}>
       {renderStep(0, <BackgroundSection />)}
       {renderStep(1, <SimulationPage />, true)}
 

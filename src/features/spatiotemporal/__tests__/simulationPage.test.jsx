@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import App from '../../../App';
 import SimulationPage from '../components/SimulationPage';
 
 /**
@@ -112,7 +113,7 @@ describe('SimulationPage', () => {
     expect(container.querySelector('.analysis__splitter')).not.toBeNull();
   });
 
-  it('los dos divisores abren y cierran las columnas de Estacionaria e Inspector', async () => {
+  it('el divisor abre y cierra la columna del Inspector (la Estacionaria ya no está aquí)', async () => {
     await render();
 
     // El panel de análisis sólo existe en la vista 2
@@ -121,7 +122,7 @@ describe('SimulationPage', () => {
       stepperButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    // jsdom no calcula cajas: se le asigna la del panel con 2 columnas
+    // jsdom no calcula cajas: se le asigna la del panel de análisis
     const analysis = container.querySelector('.analysis');
     analysis.getBoundingClientRect = () => ({
       left: 0,
@@ -132,15 +133,14 @@ describe('SimulationPage', () => {
       bottom: 600,
     });
 
-    const dividers = () => container.querySelectorAll('.analysis__splitter');
-    const stationary = () => container.querySelector('.analysis__stationary');
+    const divider = () => container.querySelector('.analysis__splitter');
     const inspector = () => container.querySelector('.analysis__inspector');
     const width = (el) => parseFloat(el.style.width);
 
-    const drag = async (index, from, to, id) => {
+    const drag = async (from, to, id) => {
       const fire = async (type, clientX) => {
         await act(async () => {
-          dividers()[index].dispatchEvent(
+          divider().dispatchEvent(
             new MouseEvent(type, { bubbles: true, clientX, pointerId: id })
           );
         });
@@ -150,33 +150,33 @@ describe('SimulationPage', () => {
       await fire('pointerup', to);
     };
 
-    expect(dividers()).toHaveLength(2);
+    // Sólo queda UN divisor: la Estacionaria se mudó a su sección inferior
+    expect(container.querySelectorAll('.analysis__splitter')).toHaveLength(1);
+    expect(container.querySelector('.analysis__stationary')).toBeNull();
 
-    // Estado inicial: Estacionaria cerrada, Inspector abierto a 380 px
-    expect(width(stationary())).toBe(0);
+    // Estado inicial: Inspector abierto a 380 px
     expect(width(inspector())).toBe(380);
     expect(container.querySelector('main').className).toContain('has-1col');
 
-    // El PRIMER divisor controla Estacionaria: arrastrar a la izquierda la abre
-    await drag(0, 500, 200, 1);
-    expect(width(stationary())).toBe(300);
-    expect(container.querySelector('main').className).toContain('has-2cols');
+    // El botón derecho sobre el divisor NO lo arrastra
+    await act(async () => {
+      divider().dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, clientX: 500, button: 2 })
+      );
+    });
+    expect(width(inspector())).toBe(380);
 
-    // ... y arrastrarlo a la derecha la cierra
-    await drag(0, 500, 800, 2);
-    expect(width(stationary())).toBe(0);
-    expect(container.querySelector('main').className).toContain('has-1col');
-
-    // El SEGUNDO divisor controla el Inspector
-    await drag(1, 700, 1000, 3);
+    // Arrastrar a la derecha lo cierra...
+    await drag(700, 1000, 1);
     expect(width(inspector())).toBe(0);
+    expect(container.querySelector('main').className).not.toContain('has-');
 
-    await drag(1, 700, 400, 4);
+    // ... y arrastrarlo a la izquierda lo vuelve a abrir
+    await drag(700, 400, 2);
     expect(width(inspector())).toBe(300);
 
     // La columna sigue montada con ancho 0: no se pierde su estado
     expect(inspector().querySelector('.inspector')).not.toBeNull();
-    expect(stationary().querySelector('.stationary')).not.toBeNull();
   });
 
   it('muestra la sección Estacionaria con sus tres bloques', async () => {
@@ -206,6 +206,37 @@ describe('SimulationPage', () => {
 
     // Aviso de que el cálculo exacto necesita n = 3 (criterio 4)
     expect(container.textContent).toContain('requiere n = 3');
+  });
+
+  it('la Estacionaria vive en una sección inferior a todo el ancho, fuera del análisis', async () => {
+    await render();
+
+    const stepperButtons = [...container.querySelectorAll('.stepper__button')];
+    await act(async () => {
+      stepperButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const aside = container.querySelector('aside');
+    const section = container.querySelector('.cell--stationary');
+
+    // Existe en la vista 2 y va DESPUÉS del panel lateral, sin estar dentro
+    expect(section).not.toBeNull();
+    expect(section.previousElementSibling).toBe(aside);
+    expect(aside.contains(section)).toBe(false);
+
+    // Dentro del panel de análisis no queda nada de Estacionaria: ése era
+    // el que dejaba el hueco vacío al lado de las gráficas
+    expect(container.querySelector('.analysis__stationary')).toBeNull();
+    expect(container.querySelector('.analysis .stationary')).toBeNull();
+    expect(section.querySelector('.stationary')).not.toBeNull();
+
+    // Cabecera propia + bloques 2 y 3 (el 1 sólo aparece con resultados)
+    expect(section.querySelector('.analysis__section').textContent).toContain(
+      'Estacionaria π* · verificación'
+    );
+    expect(section.querySelectorAll('.stationary__block').length).toBeGreaterThanOrEqual(2);
+    expect(section.textContent).toContain('Invariancia frente a π₀');
+    expect(section.textContent).toContain('Cálculo exacto para n = 3');
   });
 
   it('el Inspector muestra las tres secciones y pide un primer paso', async () => {
@@ -265,6 +296,77 @@ describe('SimulationPage', () => {
       );
     });
     expect(nodes()).toBe(6);
+  });
+
+  it('Mayús + + añade varios nodos de una vez (y Ctrl+Z los quita todos juntos)', async () => {
+    await render();
+    const nodes = () => container.querySelectorAll('.stage__vertex').length;
+    const rings = () => container.querySelectorAll('.stage__ring').length;
+
+    expect(nodes()).toBe(6);
+
+    // Se dejan 3 nodos para que el lote de 5 quepa sin tocar el tope de X
+    for (let i = 0; i < 3; i += 1) {
+      await act(async () => {
+        container
+          .querySelector('.stage__vertex')
+          .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+      });
+    }
+    expect(nodes()).toBe(3);
+
+    // Un solo Mayús + + → 3 + 5 = 8 vértices (el croquis crece m → m+1)
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '+', shiftKey: true, bubbles: true })
+      );
+    });
+    expect(nodes()).toBe(8);
+    expect(rings()).toBe(8);
+
+    // Es UNA entrada de historial: Ctrl+Z devuelve los 5 de una sola vez
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
+      );
+    });
+    expect(nodes()).toBe(3);
+    expect(rings()).toBe(6);
+  });
+
+  it('el toolbar añade la cantidad indicada de nodos', async () => {
+    await render();
+
+    const field = container.querySelector('#add-nodes');
+    expect(field).not.toBeNull();
+    expect(field.value).toBe('1');
+
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    await act(async () => {
+      setter.call(field, '2');
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll('.toolbar__button')]
+        .find((button) => button.textContent.includes('＋ Añadir'))
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // 6 + 2 = 8 (justo el tope del croquis X)
+    expect(container.querySelectorAll('.stage__vertex')).toHaveLength(8);
+    expect(container.querySelectorAll('.stage__ring')).toHaveLength(8);
+
+    // Y Ctrl+Z los quita de una vez
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
+      );
+    });
+    expect(container.querySelectorAll('.stage__vertex')).toHaveLength(6);
   });
 
   it('el arrastre libre con clic izquierdo mueve el nodo y su posición xᵢ', async () => {
@@ -368,7 +470,7 @@ describe('SimulationPage', () => {
     expect(Number(ring.getAttribute('cx'))).toBe(250);
   });
 
-  it('cada columna tiene su botón ✕ para cerrarla', async () => {
+  it('la columna del Inspector tiene su botón ✕ para cerrarla', async () => {
     await render();
 
     const stepperButtons = [...container.querySelectorAll('.stepper__button')];
@@ -377,41 +479,38 @@ describe('SimulationPage', () => {
     });
 
     const closeButtons = () => [...container.querySelectorAll('.analysis__close')];
-    const stationary = () => container.querySelector('.analysis__stationary');
     const inspector = () => container.querySelector('.analysis__inspector');
     const width = (el) => parseFloat(el.style.width);
 
-    // Uno por columna: Estacionaria primero, Inspector después
-    expect(closeButtons()).toHaveLength(2);
-    expect(closeButtons()[0].getAttribute('aria-label')).toContain('Estacionaria');
-    expect(closeButtons()[1].getAttribute('aria-label')).toContain('Inspector');
-    expect(width(stationary())).toBe(0);
+    // Un solo ✕: el de la columna del Inspector (la Estacionaria no está
+    // en esta fila: vive en su propia sección inferior, sin botón de cierre)
+    expect(closeButtons()).toHaveLength(1);
+    expect(closeButtons()[0].getAttribute('aria-label')).toContain('Inspector');
     expect(width(inspector())).toBe(380);
 
-    // Se abre Estacionaria (doble clic en su divisor)…
-    await act(async () => {
-      container
-        .querySelectorAll('.analysis__splitter')[0]
-        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    });
-    expect(width(stationary())).toBeGreaterThan(0);
-    expect(container.querySelector('main').className).toContain('has-2cols');
-
-    // …y su ✕ la vuelve a cerrar
+    // El ✕ cierra la columna…
     await act(async () => {
       closeButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(width(stationary())).toBe(0);
+    expect(width(inspector())).toBe(0);
+    expect(container.querySelector('main').className).not.toContain('has-');
 
-    // El ✕ del Inspector la cierra también
+    // …y el doble clic en el divisor la vuelve a abrir
     await act(async () => {
-      closeButtons()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      container
+        .querySelector('.analysis__splitter')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    });
+    expect(width(inspector())).toBeGreaterThan(0);
+    expect(container.querySelector('main').className).toContain('has-1col');
+
+    // Cerrada sigue montada (sigue habiendo 1 botón ✕)
+    await act(async () => {
+      closeButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(width(inspector())).toBe(0);
-
-    // Con las dos fuera no hay clase de rejilla y siguen montadas (2 botones)
-    expect(container.querySelector('main').className).not.toContain('has-');
-    expect(closeButtons()).toHaveLength(2);
+    expect(inspector().querySelector('.inspector')).not.toBeNull();
+    expect(closeButtons()).toHaveLength(1);
   });
 
   it('el doble clic abre el renombrado en línea y Enter lo guarda', async () => {
@@ -436,6 +535,80 @@ describe('SimulationPage', () => {
 
     expect(container.querySelector('.stage__rename')).toBeNull();
     expect(container.textContent).toContain('centro');
+  });
+
+  it('el renombrado por doble clic rechaza un nombre que ya usa otro nodo', async () => {
+    await render();
+
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const type = async (input, value) => {
+      await act(async () => {
+        setter.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    };
+
+    // Doble clic sobre el primer vértice → renombrado con su nombre actual
+    await act(async () => {
+      container
+        .querySelector('.stage__vertex')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    });
+
+    const input = container.querySelector('.stage__rename');
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('0');
+
+    // "1" ya lo usa el vértice 1: NO se guarda, se queda abierto y avisa
+    await type(input, '1');
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+
+    expect(container.querySelector('.stage__rename')).not.toBeNull();
+    expect(input.value).toBe('1');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    const error = container.querySelector('.stage__rename-error');
+    expect(error).not.toBeNull();
+    expect(error.textContent).toContain('ya está en uso');
+
+    // Un nombre libre sí se guarda y el aviso desaparece
+    await type(input, 'norte');
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+
+    expect(container.querySelector('.stage__rename')).toBeNull();
+    expect(container.querySelector('.stage__rename-error')).toBeNull();
+    expect(container.textContent).toContain('norte');
+  });
+
+  it('dos clics de puntero seguidos sobre el mismo nodo abren el renombrado', async () => {
+    await render();
+
+    const svg = () => container.querySelector('svg');
+    const click = async () => {
+      await act(async () => {
+        container
+          .querySelector('.stage__vertex')
+          .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      });
+      await act(async () => {
+        svg().dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+      });
+    };
+
+    // Un sólo clic → sólo selecciona
+    await click();
+    expect(container.querySelector('.stage__rename')).toBeNull();
+
+    // Un segundo clic en el MISMO nodo, dentro de la ventana → renombrado.
+    // (En el navegador real el `dblclick` va reencuadrado al SVG por la
+    // captura de puntero, así que éste es el camino que de verdad se usa.)
+    await click();
+    const input = container.querySelector('.stage__rename');
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('0');
   });
 
   it('los atajos no actúan cuando el paso está oculto (portada)', async () => {
@@ -516,6 +689,104 @@ describe('SimulationPage', () => {
       );
     });
     expect(edges()).toBe(before);
+  });
+
+  it('el botón derecho no hace nada en el lienzo', async () => {
+    await render();
+
+    const rightDown = (target) =>
+      target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 2 }));
+
+    const before = {
+      nodes: container.querySelectorAll('.stage__vertex').length,
+      edges: container.querySelectorAll('.stage__edges .stage__edge').length,
+    };
+
+    // Sobre el fondo: no añade un vértice
+    await act(async () => {
+      rightDown(container.querySelector('svg'));
+    });
+
+    // Sobre un nodo: no lo selecciona ni abre el renombrado
+    await act(async () => {
+      rightDown(container.querySelector('.stage__vertex'));
+    });
+
+    // Sobre una arista: no la borra
+    await act(async () => {
+      rightDown(container.querySelector('.stage__edge-hits line'));
+    });
+
+    expect(container.querySelectorAll('.stage__vertex')).toHaveLength(before.nodes);
+    expect(container.querySelectorAll('.stage__edges .stage__edge')).toHaveLength(before.edges);
+    expect(container.querySelectorAll('.stage__vertex.is-selected')).toHaveLength(0);
+    expect(container.querySelector('.stage__rename')).toBeNull();
+  });
+
+  it('un doble clic fuera del vértice o la arista no deja ningún nodo nuevo', async () => {
+    await render();
+
+    const svg = container.querySelector('svg');
+    // Sin caja jsdom no hay punto: se le da la del lienzo 500×400
+    svg.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 500,
+      height: 400,
+      right: 500,
+      bottom: 400,
+    });
+
+    const nodes = () => container.querySelectorAll('.stage__vertex').length;
+    const base = nodes(); // K₆ → 6
+
+    const click = async () => {
+      await act(async () => {
+        svg.dispatchEvent(
+          new MouseEvent('pointerdown', { bubbles: true, clientX: 120, clientY: 90 })
+        );
+      });
+    };
+
+    // Un sólo clic → crea el vértice
+    await click();
+    expect(nodes()).toBe(base + 1);
+
+    // Se espera a que caduque el brazo del doble clic
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+
+    // Doble clic en el fondo → no queda NINGÚN nodo nuevo
+    await click();
+    await click();
+    expect(nodes()).toBe(base + 1);
+
+    // La cancelación no dejó entrada en el historial: Ctrl+Z sigue
+    // deshaciendo el clic simple anterior, no un nodo fantasma
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
+      );
+    });
+    expect(nodes()).toBe(base);
+  });
+
+  it('el click derecho no abre el menú del navegador en ninguna parte', async () => {
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    const fire = (selector) => {
+      const target = container.querySelector(selector);
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+
+    expect(fire('.app')).toBe(true);
+    expect(fire('.hero')).toBe(true);
+    expect(fire('.simulation')).toBe(true);
   });
 
   it('avanza la cadena y el Inspector deja de mostrar el aviso', async () => {

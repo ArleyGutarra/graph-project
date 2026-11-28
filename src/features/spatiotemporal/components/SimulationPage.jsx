@@ -23,10 +23,8 @@ const MODES = [
   { id: 'simulation', label: '2. Simular y analizar' },
 ];
 
-/** Anchos iniciales de las dos columnas arrastrables (px). */
-const INITIAL_STATIONARY = 0; // la Estacionaria arranca cerrada
+/** Ancho inicial de la columna arrastrable del Inspector (px). */
 const INITIAL_INSPECTOR = 380;
-const OPEN_STATIONARY = 320; // ancho al abrirla con doble clic / teclado
 
 /** Por debajo de este umbral el arrastre cierra la columna. */
 const COLUMN_CLOSE_AT = 140;
@@ -38,6 +36,12 @@ const DIVIDER_W = 16;
 
 /** Tamaño máximo del croquis X (coincide con el deslizador "Tamaño de X"). */
 const MAX_SKETCH_SIZE = 8;
+
+/** Vértices que añade de golpe el atajo Mayús + +. */
+const BATCH_ADD = 5;
+
+/** Tope superior del lote (de todos modos el croquis corta en MAX_SKETCH_SIZE). */
+const MAX_BATCH = 50;
 
 function edgesOf(adj, n) {
   const edges = [];
@@ -58,8 +62,10 @@ function edgesOf(adj, n) {
  *               vértices, dígito de color) y controles del mapa ·
  *               CONFIGURACIÓN INICIAL Y PARÁMETROS (3 tarjetas)
  *   vista 2   → chips (t, t⁻/t⁺, |E|) + visor + leyenda + transporte ·
- *               PANEL DE ANÁLISIS con pestañas (Gráficas / Estacionaria /
- *               Inspector de paso t) y tarjeta de estimación de π*
+ *               PANEL DE ANÁLISIS con las gráficas de evolución + tarjeta de
+ *               estimación de π* + columna redimensionable del Inspector ·
+ *               SECCIÓN ESTACIONARIA a pie de página (a todo el ancho y con
+ *               sus tres bloques en paralelo, sin invadir lo de arriba)
  *
  * Se conserva íntegro el diseño futurista: tema oscuro con acentos carmesí,
  * tipografía monoespaciada, tarjetas translúcidas y el fondo animado
@@ -73,12 +79,13 @@ export default function SimulationPage() {
   const [view, setView] = useState('graph');
   // Columna del Inspector de paso t: anchura en px (0 = cerrada). Se abre y
   // cierra arrastrando el divisor "↔" (o con doble clic / teclado sobre él).
-  const [stationaryWidth, setStationaryWidth] = useState(INITIAL_STATIONARY);
   const [inspectorWidth, setInspectorWidth] = useState(INITIAL_INSPECTOR);
   const analysisRef = useRef(null);
-  // { which, pointerId, x0, w0 } mientras se arrastra un divisor
+  // { pointerId, x0, w0 } mientras se arrastra el divisor
   const resizeRef = useRef(null);
   const [selected, setSelected] = useState(null);
+  // Cuántos vértices añade el botón «＋ Añadir» de la vista 1 (1…MAX_SKETCH_SIZE).
+  const [addCount, setAddCount] = useState(1);
 
   const t = chain.t;
   const points = chain.history.points;
@@ -192,37 +199,72 @@ export default function SimulationPage() {
     commitG0(g0);
   };
 
-  const addVertex = (target) => {
+  /**
+   * Añade `count` vértices en UNA sola entrada de historial (así Ctrl+Z los
+   * quita de una vez). El primero puede ocupar la posición `target` (clic en
+   * el fondo); el resto van a la primera posición libre.
+   *
+   * Devuelve cuántos se añadieron de verdad: el croquis X no crece más allá
+   * de MAX_SKETCH_SIZE, así que ahí el lote se corta solo.
+   */
+  const addVertices = (count, target = null) => {
+    const wanted = Math.max(1, Math.min(Math.floor(Number(count) || 1), MAX_BATCH));
     const g0 = snapshotG0();
-    const used = new Set(g0.positions);
+    let size = sketch.size;
+    let added = 0;
 
-    // Posiciones libres de X: el que se pulsó si está libre, o la primera.
-    let free = Number.isInteger(target) && !used.has(target) ? target : -1;
-    if (free < 0) {
-      free = 0;
-      while (used.has(free) && free < sketch.size) free += 1;
+    for (let i = 0; i < wanted; i += 1) {
+      const used = new Set(g0.positions);
+
+      // Posiciones libres de X: la elegida si es la primera y está libre, o
+      // la primera disponible.
+      let free = i === 0 && Number.isInteger(target) && !used.has(target) ? target : -1;
+      if (free < 0) {
+        free = 0;
+        while (used.has(free) && free < size) free += 1;
+      }
+
+      // Si X está llena se agranda el croquis (m → m+1) en vez de compartir la
+      // misma posición. Es el ÚNICO caso en que el anillo se reubica: BORRAR
+      // nunca toca X, así que al quitar vértices el dibujo se queda como está.
+      if (free >= size) {
+        if (size >= MAX_SKETCH_SIZE) break;
+        free = size; // la posición recién creada
+        size += 1;
+      }
+
+      g0.positions.push(free);
+      g0.colors.push(g0.colors.length % config.colorCount);
+      g0.labels.push(String(g0.labels.length));
+      added += 1;
     }
 
-    // Si X está llena se agranda el croquis (m → m+1) en vez de compartir la
-    // misma posición. Es el ÚNICO caso en que el anillo se reubica: BORRAR
-    // nunca toca X, así que al quitar vértices el dibujo se queda como está.
-    let patch = null;
-    if (free >= sketch.size) {
-      if (sketch.size >= MAX_SKETCH_SIZE) return;
-      free = sketch.size; // la posición recién creada
-      patch = { sketchSize: sketch.size + 1 };
-    }
-
-    g0.positions.push(free);
-    g0.colors.push(g0.colors.length % config.colorCount);
-    g0.labels.push(String(g0.labels.length));
-    applyGraphChange({ g0, ...(patch ?? {}) });
+    if (!added) return 0;
+    applyGraphChange({ g0, ...(size !== sketch.size ? { sketchSize: size } : {}) });
+    return added;
   };
+
+  /** Añade UN vértice (clic en el fondo → en esa posición concreta). */
+  const addVertex = (target) => addVertices(1, target);
 
   const handleBackground = (target) => {
     // Clic en el fondo de la capa Grafo → añade un vértice en esa posición.
-    if (view !== 'graph') return;
-    addVertex(target);
+    // Devuelve cuántos se añadieron: GraphStage sólo arma el cancelador del
+    // doble clic si de verdad se creó alguno.
+    if (view !== 'graph') return 0;
+    return addVertex(target);
+  };
+
+  /**
+   * Doble clic fuera de un vértice o de una arista: el vértice que acababa de
+   * crear el primer clic se retira Y su entrada de historial también, así que
+   * el gesto no deja nada nuevo (ni un nodo de más, ni un Ctrl+Z huérfano).
+   */
+  const cancelLastAdd = () => {
+    if (!history.past.length) return;
+    const previous = history.past[history.past.length - 1];
+    setHistory((h) => ({ past: h.past.slice(0, -1), future: h.future }));
+    sim.setModelParam(previous);
   };
 
   /**
@@ -288,6 +330,7 @@ export default function SimulationPage() {
   // --- Atajos de teclado de la vista 1 (Grafo inicial) ----------------------
   //   Supr / Retroceso → quita el vértice seleccionado
   //   + (o =)          → añade un vértice en la primera posición libre
+  //   Mayús + +        → añade BATCH_ADD vértices de una vez
   //   Ctrl+Z / Ctrl+Y  → deshacer / rehacer las modificaciones del grafo
   // Se ignoran cuando el foco está en un campo de texto (renombrado incluido).
   const shortcutRef = useRef(null);
@@ -297,7 +340,7 @@ export default function SimulationPage() {
     shortcutRef.current = {
       mode,
       selected,
-      add: addVertex,
+      add: addVertices,
       remove: (vertex) => handleNodeAction(vertex, 'delete'),
       paint: (vertex, color) => handleNodeAction(vertex, 'paint', color),
       colorCount: config.colorCount,
@@ -347,7 +390,8 @@ export default function SimulationPage() {
         context.remove(context.selected);
       } else if (event.key === '+' || event.key === '=') {
         event.preventDefault();
-        context.add(null);
+        // Mayús → lote de BATCH_ADD vértices; sin Mayús → uno solo.
+        context.add(event.shiftKey ? BATCH_ADD : 1);
       } else if (event.key >= '0' && event.key <= '9') {
         // Dígito 0…(c) → pinta el vértice seleccionado con ese color.
         const color = Number(event.key);
@@ -450,57 +494,41 @@ export default function SimulationPage() {
     n: sim.vertexCount,
   });
 
-  const openColumns = (stationaryWidth > 0 ? 1 : 0) + (inspectorWidth > 0 ? 1 : 0);
   const inspectorOpen = inspectorWidth > 0;
 
-  const widthOf = (which) => (which === 'stationary' ? stationaryWidth : inspectorWidth);
-  const setWidthOf = (which, value) =>
-    which === 'stationary' ? setStationaryWidth(value) : setInspectorWidth(value);
-  const otherWidth = (which) => (which === 'stationary' ? inspectorWidth : stationaryWidth);
-
-  /** Presupuesto disponible (px) para las columnas arrastrables. */
-  const columnBudget = (which) => {
+  /** Presupuesto disponible (px) para la columna arrastrable del Inspector. */
+  const columnBudget = () => {
     const rect = analysisRef.current?.getBoundingClientRect();
     if (!rect || !rect.width) return 900;
-    // Al abrir la SEGUNDA columna el escenario cede una columna de la rejilla
-    // (8/12 → 9/12, ≈ +12,5 %): se proyecta ese ancho para que el arrastre no
-    // se quede corto justo cuando se cruza el umbral.
-    const projected = widthOf(which) === 0 && otherWidth(which) > 0;
-    const width = projected ? rect.width * 1.125 : rect.width;
-    return Math.max(0, width - DIVIDER_W - MAIN_MIN);
+    // El Inspector se apoya en la columna principal: el hueco que queda tras
+    // el divisor es todo lo que puede ocupar.
+    return Math.max(0, rect.width - DIVIDER_W - MAIN_MIN);
   };
 
-  const clampColumn = (next, other, budget) => {
+  const clampColumn = (next, budget) => {
     if (!Number.isFinite(next) || next < COLUMN_CLOSE_AT) return 0;
-    const max = budget - other;
-    if (max < COLUMN_MIN) return 0;
-    return Math.min(Math.max(next, COLUMN_MIN), max);
+    if (budget < COLUMN_MIN) return 0;
+    return Math.min(Math.max(next, COLUMN_MIN), budget);
   };
 
   /** Reabre la columna del Inspector si está cerrada (p. ej. al pulsar un vértice). */
   const openInspector = () =>
-    setInspectorWidth((w) =>
-      w > 0
-        ? w
-        : clampColumn(INITIAL_INSPECTOR, stationaryWidth, columnBudget('inspector')) ||
-          COLUMN_MIN
+    setInspectorWidth(
+      (w) => w || clampColumn(INITIAL_INSPECTOR, columnBudget()) || COLUMN_MIN
     );
 
   /**
-   * Arrastre de un divisor: arrastrar hacia la IZQUIERDA ensancha la columna
-   * que queda a su derecha (por eso `w0 − Δx` para las dos).
+   * Arrastre del divisor: arrastrar hacia la IZQUIERDA ensancha la columna
+   * que queda a su derecha (por eso `w0 − Δx`).
    */
-  /** La columna que controla un divisor viaja en `data-column`. */
-  const columnOf = (event) => event.currentTarget?.dataset?.column || 'inspector';
-
   const startResize = (event) => {
-    const which = columnOf(event);
+    // Sólo el botón izquierdo arrastra el divisor.
+    if (event.button !== undefined && event.button !== 0) return;
     event.preventDefault();
     resizeRef.current = {
-      which,
       pointerId: event.pointerId,
       x0: event.clientX,
-      w0: widthOf(which),
+      w0: inspectorWidth,
     };
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -516,11 +544,8 @@ export default function SimulationPage() {
     if (!rect.width) return;
 
     const next = drag.w0 - (event.clientX - drag.x0);
-    const other = otherWidth(drag.which);
-    const projected = drag.w0 === 0 && other > 0;
-    const width = projected ? rect.width * 1.125 : rect.width;
-
-    setWidthOf(drag.which, clampColumn(next, other, Math.max(0, width - DIVIDER_W - MAIN_MIN)));
+    const budget = Math.max(0, rect.width - DIVIDER_W - MAIN_MIN);
+    setInspectorWidth(clampColumn(next, budget));
   };
 
   const endResize = (event) => {
@@ -533,41 +558,28 @@ export default function SimulationPage() {
     }
   };
 
-  const toggleColumn = (which) => {
-    if (widthOf(which) > 0) {
-      setWidthOf(which, 0);
-      return;
-    }
-    const open = which === 'stationary' ? OPEN_STATIONARY : INITIAL_INSPECTOR;
-    setWidthOf(
-      which,
-      clampColumn(open, otherWidth(which), columnBudget(which)) || COLUMN_MIN
+  const toggleInspector = () =>
+    setInspectorWidth((w) =>
+      w > 0 ? 0 : clampColumn(INITIAL_INSPECTOR, columnBudget()) || COLUMN_MIN
     );
-  };
 
   const onSplitterKey = (event) => {
-    const which = columnOf(event);
-    const current = widthOf(which);
-    const other = otherWidth(which);
-    const budget = columnBudget(which);
+    const budget = columnBudget();
 
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       const delta = event.key === 'ArrowRight' ? -24 : 24;
-      setWidthOf(which, clampColumn((current || COLUMN_MIN) + delta, other, budget));
+      setInspectorWidth(clampColumn((inspectorWidth || COLUMN_MIN) + delta, budget));
     } else if (event.key === 'Home') {
       event.preventDefault();
-      setWidthOf(which, 0);
-    } else if (event.key === 'End') {
+      setInspectorWidth(0);
+    } else if (event.key === 'End' || event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      toggleColumn(which);
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      toggleColumn(which);
+      toggleInspector();
     }
   };
 
-  const onSplitterDoubleClick = (event) => toggleColumn(columnOf(event));
+  const onSplitterDoubleClick = toggleInspector;
 
   const generateRun = () => {
     sim.reset();
@@ -582,13 +594,7 @@ export default function SimulationPage() {
 
   return (
     <main
-      className={`simulation${
-        mode === 'simulation' && openColumns > 0
-          ? openColumns > 1
-            ? ' has-2cols'
-            : ' has-1col'
-          : ''
-      }`}
+      className={`simulation${mode === 'simulation' && inspectorOpen ? ' has-1col' : ''}`}
       ref={rootRef}
     >
       {/* ---------- Cabecera global ---------- */}
@@ -687,6 +693,7 @@ export default function SimulationPage() {
               onEdgeAction={handleEdgeAction}
               onDrop={handleDrop}
               onBackground={handleBackground}
+              onBackgroundCancel={cancelLastAdd}
               onViewChange={setView}
               labels={config.g0?.labels}
               onRename={renameVertex}
@@ -717,6 +724,36 @@ export default function SimulationPage() {
                   title="Rehacer (Ctrl+Y)"
                 >
                   ↷ Rehacer
+                </button>
+              </div>
+
+              {/* Añadir varios vértices de una vez (lote en una sola entrada
+                  de historial: Ctrl+Z los quita todos juntos). */}
+              <div className="toolbar__group" role="group" aria-label="Añadir nodos">
+                <label className="toolbar__add" htmlFor="add-nodes">
+                  Añadir
+                  <input
+                    id="add-nodes"
+                    type="number"
+                    min={1}
+                    max={MAX_SKETCH_SIZE}
+                    value={addCount}
+                    aria-label="Cuántos nodos añadir"
+                    onChange={(event) =>
+                      setAddCount(
+                        Math.max(1, Math.min(MAX_SKETCH_SIZE, Number(event.target.value) || 1))
+                      )
+                    }
+                  />
+                  {addCount > 1 ? ' nodos' : ' nodo'}
+                </label>
+                <button
+                  className="toolbar__button"
+                  type="button"
+                  onClick={() => addVertices(addCount)}
+                  title={`Añade ${addCount} ${addCount > 1 ? 'vértices' : 'vértice'} a G₀ · atajo: Mayús + + añade ${BATCH_ADD}`}
+                >
+                  ＋ Añadir
                 </button>
               </div>
             </div>
@@ -893,7 +930,7 @@ export default function SimulationPage() {
             <div className="panel__head">
               <span className="panel__title">Panel de análisis</span>
               <span className="panel__hint">
-                Arrastra los dos ↔ para abrir o cerrar las columnas de Estacionaria e Inspector
+                Arrastra el ↔ para abrir o cerrar la columna del Inspector
               </span>
             </div>
 
@@ -961,75 +998,13 @@ export default function SimulationPage() {
 
               </div>
 
-              {/* ---------- Columna 1 · Estacionaria ---------- */}
-              <div
-                className="analysis__splitter"
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Redimensionar la sección Estacionaria"
-                aria-valuenow={stationaryWidth}
-                data-column="stationary"
-                tabIndex={0}
-                title={
-                  stationaryWidth > 0
-                    ? 'Arrastra → para cerrar Estacionaria · doble clic para alternar'
-                    : 'Arrastra ← para abrir Estacionaria · doble clic para alternar'
-                }
-                onPointerDown={startResize}
-                onPointerMove={onResizeMove}
-                onPointerUp={endResize}
-                onPointerCancel={endResize}
-                onDoubleClick={onSplitterDoubleClick}
-                onKeyDown={onSplitterKey}
-              >
-                <span className="analysis__grip" aria-hidden="true">
-                  ↔
-                </span>
-              </div>
-
-              <div
-                className={`analysis__column analysis__stationary${
-                  stationaryWidth > 0 ? ' is-open' : ''
-                }`}
-                style={{ width: stationaryWidth }}
-                aria-hidden={stationaryWidth === 0}
-              >
-                <div className="analysis__column-head">
-                  <h2 className="analysis__section">
-                    Estacionaria π* · verificación empírica y exacta del Teorema
-                  </h2>
-                  <button
-                    type="button"
-                    className="analysis__close"
-                    onClick={() => setStationaryWidth(0)}
-                    title="Cerrar la sección Estacionaria (también puedes arrastrar el divisor)"
-                    aria-label="Cerrar la sección Estacionaria"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <StationaryPanel
-                  sketch={sketch}
-                  config={config}
-                  conditions={conditions}
-                  params={{ k: config.k, alpha: config.alpha }}
-                  handlers={{
-                    onSeed: (seed) => sim.setModelParam({ seed }),
-                    // El cálculo exacto necesita n = m = 3: se fija el croquis
-                    // y se parte de un G₀ de 3 vértices (editado o no).
-                    onExactParams: (patch) => sim.setModelParam({ ...patch, g0: null }),
-                  }}
-                />
-              </div>
-
-              {/* ---------- Columna 2 · Inspector ---------- */}
+              {/* ---------- Columna · Inspector ---------- */}
               <div
                 className="analysis__splitter"
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Redimensionar el Inspector de paso t"
                 aria-valuenow={inspectorWidth}
-                data-column="inspector"
                 tabIndex={0}
                 title={
                   inspectorOpen
@@ -1051,7 +1026,7 @@ export default function SimulationPage() {
               <div
                 className={`analysis__column analysis__inspector${
                   inspectorWidth > 0 ? ' is-open' : ''
-                }`}
+                }${chain.detail && chain.previous ? '' : ' is-empty'}`}
                 style={{ width: inspectorWidth }}
                 aria-hidden={inspectorWidth === 0}
               >
@@ -1083,6 +1058,40 @@ export default function SimulationPage() {
           </div>
         )}
       </aside>
+
+      {/* ---------- Sección Estacionaria · a pie, a todo el ancho ----------
+          Va FUERA del panel de análisis: así los gráficos y el Inspector de
+          arriba conservan su altura y no queda ningún hueco vacío al lado.
+          Los tres bloques (1 marginales · 2 invariancia · 3 exacto) se
+          reparten en paralelo, de forma horizontal. */}
+      {mode === 'simulation' ? (
+        <section className="cell--stationary" aria-label="Sección Estacionaria">
+          <div className="panel panel--stationary">
+            <div className="panel__head">
+              <h2 className="analysis__section">
+                Estacionaria π* · verificación empírica y exacta del Teorema
+              </h2>
+              <span className="panel__hint">
+                Sección inferior · los tres bloques se ejecutan en paralelo sin interrumpir el
+                panel de análisis
+              </span>
+            </div>
+
+            <StationaryPanel
+              sketch={sketch}
+              config={config}
+              conditions={conditions}
+              params={{ k: config.k, alpha: config.alpha }}
+              handlers={{
+                onSeed: (seed) => sim.setModelParam({ seed }),
+                // El cálculo exacto necesita n = m = 3: se fija el croquis
+                // y se parte de un G₀ de 3 vértices (editado o no).
+                onExactParams: (patch) => sim.setModelParam({ ...patch, g0: null }),
+              }}
+            />
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

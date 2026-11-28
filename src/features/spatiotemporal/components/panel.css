@@ -1,25 +1,16 @@
 /* ============================================================
-   PESTAÑAS · Grafo / Croquis / Estacionaria
+   SECCIÓN ESTACIONARIA (a pie de página, a todo el ancho)
    ============================================================ */
-
-.cell--tabs {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 14px;
-  padding: 2px 2px 0;
-}
-
-.simulation__tabs-note {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #7f7a8a;
-}
 
 .cell--stationary {
   grid-column: 1 / -1;
+  min-width: 0;
+  align-self: start;
+}
+
+/* La tarjeta no necesita más ancho que el de la rejilla; el contenido
+   horizontal la organiza en tres bloques paralelos. */
+.panel--stationary {
   min-width: 0;
 }
 
@@ -147,9 +138,15 @@
    MODO ESTACIONARIA
    ============================================================ */
 
+/* Los bloques se reparten EN HORIZONTAL (uno al lado del otro) dentro de la
+   sección inferior a todo el ancho; la barra de parámetros, el progreso, los
+   errores y los avisos ocupan la fila completa. Con `wrap`, si no caben tres
+   bloques de 340 px se pasan a la siguiente fila: nunca queda una columna
+   vacía al final. */
 .stationary {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: stretch;
   gap: 13px;
   min-width: 0;
 }
@@ -161,6 +158,20 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Fila completa: parámetros, progreso, errores y avisos previos. */
+.stationary__bar,
+.stationary__progress,
+.stationary__error,
+.stationary > .stationary__hint {
+  flex: 1 1 100%;
+}
+
+/* Bloques 1 · 2 · 3 en paralelo (mínimo 340 px cada uno). */
+.stationary__block {
+  flex: 1 1 340px;
+  min-width: 0;
 }
 
 .stationary__bar {

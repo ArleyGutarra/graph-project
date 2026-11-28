@@ -144,14 +144,22 @@
   display: none;
 }
 
-/* Los dos paneles de la fila se alinean arriba en vez de estirarse hasta la
-   altura del más largo. Si se estiran, `.stage { flex: 1 1 auto }` reparte el
-   sobrante dentro del escenario y queda un gran hueco vacío por encima de la
-   leyenda y de los controles (pasa cuando la columna derecha es larga, p. ej.
-   con la sección Estacionaria abierta). */
-.cell--stage,
-.cell--side {
+/* El escenario mide su propio contenido: si se estira, `.stage { flex: 1 1 auto }`
+   reparte el sobrante dentro del lienzo y queda un gran hueco vacío por encima
+   de la leyenda y de los controles. La columna derecha SÍ se estira hasta la
+   altura de la fila, así que no queda el fondo de la página a su lado (la
+   sección Estacionaria vive a pie de página, en su propia fila). */
+.cell--stage {
   align-self: start;
+}
+
+.cell--side {
+  align-self: stretch;
+}
+
+/* Los paneles de la celda derecha la llenan por completo. */
+.cell--side > .panel {
+  flex: 1 1 auto;
 }
 
 .panel {
@@ -168,7 +176,8 @@
 }
 
 .panel--analysis {
-  height: 100%;
+  /* Llena la celda (`.cell--side > .panel { flex: 1 1 auto }`). */
+  min-width: 0;
 }
 
 .panel__head {

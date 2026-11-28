@@ -110,7 +110,8 @@ export default function TimeSeriesChart({
   ];
 
   const seekFromPointer = (event) => {
-    if (!onSeek) return;
+    // Sólo el botón izquierdo salta a t (el derecho no hace nada).
+    if (!onSeek || (event.button !== undefined && event.button !== 0)) return;
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();

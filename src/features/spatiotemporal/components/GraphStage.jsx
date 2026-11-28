@@ -20,6 +20,26 @@ const MAP_SRC = `${import.meta.env.BASE_URL}croquis.jpg`;
 const EDGE_ARM_MS = 3000;
 
 /**
+ * Ventana de doble clic (350 ms).
+ *
+ * Se usa para DOS cosas, porque el `dblclick` nativo NO llega al vértice: al
+ * capturar el puntero en el `pointerdown`, Chrome reencuadra el
+ * `pointerup`/`click` al SVG, así que el doble clic se detecta con el segundo
+ * `pointerdown`:
+ *
+ *   · sobre el MISMO nodo → se abre el renombrado en línea;
+ *   · sobre el FONDO      → sólo se crea el primer vértice (no dos).
+ */
+const DBL_CLICK_MS = 350;
+
+/**
+ * Tolerancia, en unidades del lienzo 500×400, para dar por hecho que dos
+ * clics seguidos han caído «en el mismo sitio» (un doble clic se mueve unos
+ * pocos píxeles; dos clics intencionados en sitios distintos, mucho más).
+ */
+const CLICK_ARM_RADIUS = 30;
+
+/**
  * Escenario con dos vistas conmutables y dos modos de uso:
  *
  *  - `view = 'graph'`    → el grafo temporal G dibujado SOBRE el croquis X.
@@ -27,10 +47,12 @@ const EDGE_ARM_MS = 3000;
  *
  *  - `mode = 'editor'`   → vista 1 "Configurar escenario": los gestos son
  *      directos, sin barra de herramientas (arrastrar = mover xᵢ, clic en el
- *      fondo = añadir vértice, dos clics en vértices = arista, clic en una
- *      arista = borrarla) y emiten eventos semánticos (`onDrop`,
- *      `onBackground`, `onEdgeAction`, `onMovePosition`) que el componente
- *      contenedor traduce en ediciones de G₀.
+ *      fondo = añadir vértice —un doble clic fuera de vértices/aristas no
+ *      deja ninguno—, doble clic en un vértice = renombrarlo, dos clics en
+ *      vértices distintos = arista, clic en una arista = borrarla) y emiten
+ *      eventos semánticos (`onDrop`, `onBackground`,
+ *      `onBackgroundCancel`, `onEdgeAction`, `onMovePosition`) que el
+ *      componente contenedor traduce en ediciones de G₀.
  *  - `mode = 'simulation'` → vista 2: sólo selección de vértice + Diff.
  *
  * Los micro-estados t⁻ / t⁺ se resuelven aquí: `previous` es t⁻ y el detalle
@@ -53,6 +75,7 @@ export default function GraphStage({
   onDrop,
   onMovePosition,
   onBackground,
+  onBackgroundCancel,
   onViewChange,
   onRename,
   labels,
@@ -68,10 +91,23 @@ export default function GraphStage({
   const [hoverPos, setHoverPos] = useState(null); // posición candidata
   const [pendingNode, setPendingNode] = useState(null); // 1er clic para la arista
   const [renaming, setRenaming] = useState(null); // { vertex, value }
+  // Aviso de nombre duplicado { vertex, message }: sobrevive al cierre del
+  // input (se limpia al abrir el siguiente renombrado o al guardarlo).
+  const [renameError, setRenameError] = useState(null);
+  // Vértice cuyo primer clic acaba de ocurrir: el siguiente dentro de
+  // DBL_CLICK_MS abre el renombrado (ver el comentario de esa constante).
+  const [renameArm, setRenameArm] = useState(null);
+  // Punto del último clic en el fondo { x, y } que creó un vértice: si llega
+  // otro muy pegado dentro de DBL_CLICK_MS, es un doble clic y se cancela el
+  // nodo recién creado (onBackgroundCancel) en vez de crear otro.
+  const [backgroundArm, setBackgroundArm] = useState(null);
 
   const isCroquis = view === 'croquis';
   const isEditor = mode === 'editor';
   const m = sketch.size;
+
+  /** Nombre visible de un vértice (si `labels` no llega, su propio índice). */
+  const labelOf = (i) => labels?.[i] ?? String(i);
 
   // --- Micro-estado mostrado ------------------------------------------------
   // t⁻ = `previous` (estado de partida del último paso) · t⁺ = reconstruido.
@@ -162,11 +198,41 @@ export default function GraphStage({
     }
   };
 
+  /**
+   * El `mousedown` por defecto mueve el foco (al `<g>` del nodo o al `body`),
+   * lo que dispara el `onBlur` del renombrado y lo cierra en el MISMO clic en
+   * el que se abre. Cancelarlo deja el input con el foco; todo el dibujo va
+   * por punteros, así que no se pierde ningún gesto.
+   */
+  const keepFocusOnCanvas = (event) => event.preventDefault();
+
+  /**
+   * Sólo el botón IZQUIERDO dibuja: el derecho (o la rueda) no debe
+   * seleccionar, arrastrar, añadir vértices ni borrar aristas. Los eventos
+   * de teclado no traen `button` (undefined) y por eso pasan.
+   */
+  const isPrimaryButton = (event) => event.button === undefined || event.button === 0;
+
   const handleBackground = (event) => {
-    if (!isEditor) return;
+    if (!isEditor || !isPrimaryButton(event)) return;
     const point = toSvgPoint(event);
     if (!point) return;
-    onBackground?.(nearestPosition(layout, point));
+
+    // Un doble clic FUERA de un vértice o de una arista no deja ningún nodo
+    // nuevo: el primer clic ya había creado el suyo, así que se retira y el
+    // segundo no vuelve a añadir.
+    if (
+      backgroundArm &&
+      Math.hypot(point.x - backgroundArm.x, point.y - backgroundArm.y) < CLICK_ARM_RADIUS
+    ) {
+      setBackgroundArm(null);
+      onBackgroundCancel?.();
+      return;
+    }
+
+    // El brazo sólo se arma si el vértice se creó de verdad: si X ya está en
+    // su tope no se añade nada y no hay nada que cancelar después.
+    if (onBackground?.(nearestPosition(layout, point))) setBackgroundArm(point);
   };
 
   const handlePointerMove = (event) => {
@@ -211,7 +277,7 @@ export default function GraphStage({
 
   /** Arrastre desde el croquis: mueve la posición xᵢ directamente. */
   const handlePositionPointerDown = (event, position) => {
-    if (!isEditor || renaming) return;
+    if (!isEditor || renaming || !isPrimaryButton(event)) return;
     event.stopPropagation();
     const point = toSvgPoint(event);
     capturePointer(event.pointerId);
@@ -220,6 +286,8 @@ export default function GraphStage({
   };
 
   const handleNodePointerDown = (event, vertex) => {
+    if (!isPrimaryButton(event)) return;
+
     if (!isEditor) {
       onSelect?.(vertex);
       return;
@@ -241,6 +309,22 @@ export default function GraphStage({
 
     if (renaming) return;
 
+    // Doble clic → renombrado en línea. El `dblclick` nativo no llega al
+    // vértice (la captura de puntero reencuadra el click al SVG), así que se
+    // reconoce el SEGUNDO pointerdown sobre el mismo nodo mientras `renameArm`
+    // siga apuntando a él (la ventana la cierra el efecto de abajo).
+    if (event.type === 'pointerdown') {
+      if (renameArm === vertex) {
+        setRenameArm(null);
+        setPendingNode(null);
+        setDrag(null);
+        setRenameError(null);
+        setRenaming({ vertex, value: labelOf(vertex) });
+        return;
+      }
+      setRenameArm(vertex);
+    }
+
     // Arrastre libre del nodo y de su posición xᵢ (botón izquierdo).
     const point = toSvgPoint(event);
     capturePointer(event.pointerId);
@@ -256,12 +340,36 @@ export default function GraphStage({
     setPendingNode(vertex);
   };
 
-  const commitRename = () => {
+  /**
+   * Guarda el renombrado en línea (doble clic sobre el nodo).
+   *
+   *  · Enter → si el nombre ya lo usa OTRO nodo no se guarda: se queda el
+   *    input abierto con el aviso en rojo, para poder corregirlo.
+   *  · Blur  → se cancela el cambio, pero el aviso queda anclado al nodo.
+   *  · Nombre vacío o sin cambios → sólo se cierra.
+   */
+  const commitRename = ({ keepOpen = false } = {}) => {
     if (!renaming) return;
     const value = renaming.value.trim();
-    if (value && value !== (labels?.[renaming.vertex] ?? String(renaming.vertex))) {
-      onRename?.(renaming.vertex, value);
+    const current = labelOf(renaming.vertex);
+
+    if (!value || value === current) {
+      setRenameError(null);
+      setRenaming(null);
+      return;
     }
+
+    const taken = Array.from({ length: shown.n }, (_, i) => i).some(
+      (i) => i !== renaming.vertex && labelOf(i) === value
+    );
+    if (taken) {
+      setRenameError({ vertex: renaming.vertex, message: `«${value}» ya está en uso` });
+      if (!keepOpen) setRenaming(null);
+      return;
+    }
+
+    onRename?.(renaming.vertex, value);
+    setRenameError(null);
     setRenaming(null);
   };
 
@@ -273,7 +381,24 @@ export default function GraphStage({
     return () => clearTimeout(timer);
   }, [pendingNode]);
 
+  // El brazo del doble clic caduca solo: dos clics lentos sobre el mismo
+  // vértice sólo lo seleccionan, no abren el renombrado.
+  useEffect(() => {
+    if (renameArm === null) return undefined;
+    const timer = setTimeout(() => setRenameArm(null), DBL_CLICK_MS);
+    return () => clearTimeout(timer);
+  }, [renameArm]);
+
+  // El brazo del clic en el fondo caduca solo: pasado DBL_CLICK_MS el siguiente
+  // clic vuelve a ser un clic normal (y crea su vértice).
+  useEffect(() => {
+    if (backgroundArm === null) return undefined;
+    const timer = setTimeout(() => setBackgroundArm(null), DBL_CLICK_MS);
+    return () => clearTimeout(timer);
+  }, [backgroundArm]);
+
   const handleEdgePointerDown = (event, edge) => {
+    if (!isPrimaryButton(event)) return;
     event.stopPropagation();
     onEdgeAction?.(edge.i, edge.j, 'delete');
     setPendingNode(null);
@@ -351,6 +476,7 @@ export default function GraphStage({
         }
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onMouseDown={keepFocusOnCanvas}
         onPointerDown={(event) => {
           if (event.target === event.currentTarget) handleBackground(event);
         }}
@@ -546,11 +672,15 @@ export default function GraphStage({
                     }`}
                     onPointerDown={(event) => handleNodePointerDown(event, v)}
                     onDoubleClick={(event) => {
+                      // Respaldo del doble clic: en el navegador real el
+                      // `dblclick` va reencuadrado al SVG por la captura de
+                      // puntero, así que allí manda el detector de pointerdown.
                       if (!isEditor) return;
                       event.stopPropagation();
+                      setRenameError(null);
                       setRenaming({
                         vertex: v,
-                        value: labels?.[v] ?? String(v),
+                        value: labelOf(v),
                       });
                     }}
                     role="button"
@@ -631,29 +761,52 @@ export default function GraphStage({
 
         {renaming && isEditor && renaming.vertex < shown.n ? (
           <input
-            className="stage__rename"
+            className={`stage__rename${
+              renameError?.vertex === renaming.vertex ? ' is-invalid' : ''
+            }`}
             type="text"
             autoFocus
             maxLength={10}
             aria-label={`Renombrar v${renaming.vertex}`}
+            aria-invalid={renameError?.vertex === renaming.vertex}
             value={renaming.value}
             style={{
               left: `${(markerCoord(shown.pos[renaming.vertex]).x / 500) * 100}%`,
               top: `${(markerCoord(shown.pos[renaming.vertex]).y / 400) * 100}%`,
             }}
-            onChange={(event) => setRenaming({ ...renaming, value: event.target.value })}
+            onChange={(event) => {
+              setRenameError(null);
+              setRenaming({ ...renaming, value: event.target.value });
+            }}
             onBlur={commitRename}
             onKeyDown={(event) => {
               event.stopPropagation();
               if (event.key === 'Enter') {
                 event.preventDefault();
-                commitRename();
+                // Nombre repetido → se queda abierto con el aviso.
+                commitRename({ keepOpen: true });
               } else if (event.key === 'Escape') {
                 event.preventDefault();
+                setRenameError(null);
                 setRenaming(null);
               }
             }}
           />
+        ) : null}
+
+        {/* Aviso de nombre duplicado: se ve aunque el input ya se haya cerrado
+            (p. ej. al perder el foco) hasta que se abra otro renombrado. */}
+        {renameError && renameError.vertex < shown.n ? (
+          <span
+            className="stage__rename-error"
+            role="alert"
+            style={{
+              left: `${(markerCoord(shown.pos[renameError.vertex]).x / 500) * 100}%`,
+              top: `calc(${(markerCoord(shown.pos[renameError.vertex]).y / 400) * 100}% + 26px)`,
+            }}
+          >
+            {renameError.message}
+          </span>
         ) : null}
       </div>
 

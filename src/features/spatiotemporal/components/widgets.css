@@ -84,6 +84,27 @@
   z-index: 3;
 }
 
+/* Nombre que ya usa otro nodo: el input no lo acepta y lo dice en rojo. */
+.stage__rename.is-invalid {
+  border-color: #ff8a97;
+  box-shadow: 0 0 14px rgba(255, 138, 151, 0.45);
+}
+
+.stage__rename-error {
+  position: absolute;
+  transform: translate(-50%, 0);
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 138, 151, 0.6);
+  border-radius: 7px;
+  background: rgba(184, 28, 49, 0.28);
+  color: #ff8a97;
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+
 /* ---------- Barra de herramientas (vista 1) ---------- */
 
 .toolbar {
@@ -118,6 +139,26 @@
 .toolbar__button:hover {
   border-color: #3d3946;
   color: #fff;
+}
+
+/* Añadir varios nodos de una vez: cuántos + botón (lote en un solo Ctrl+Z). */
+.toolbar__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #a5a2ad;
+}
+
+.toolbar__add input {
+  width: 58px;
+  padding: 5px 8px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
 }
 
 .toolbar--map {
@@ -586,8 +627,10 @@
 }
 
 /* ============================================================
-   PANEL DE ANÁLISIS · una sola sección + columna del Inspector
-   redimensionable (se abre/cierra arrastrando el divisor "↔")
+   PANEL DE ANÁLISIS · una sola sección (Gráficas) + columna del
+   Inspector redimensionable (se abre/cierra arrastrando el
+   divisor "↔"). La sección Estacionaria vive ABAJO, a todo el
+   ancho, así que ya no comparte esta fila.
    ============================================================ */
 
 .panel--analysis {
@@ -597,15 +640,26 @@
 .analysis {
   display: flex;
   align-items: stretch;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-/* Cada columna mide su propio contenido; sólo los divisores se estiran hasta
-   la altura total (para que su filete recorra toda el área). Si no, cuando una
-   columna es más larga que la principal quedan huecos vacíos al final. */
-.analysis__main,
-.analysis__column {
+/* La columna principal mide su propio contenido. La del Inspector se estira
+   hasta la altura de la fila: así, cuando tiene pocos datos, su espacio libre
+   queda delimitado por el borde de la propia columna (y no flota suelto al
+   lado de las gráficas, que era el hueco que se veía). */
+.analysis__main {
   align-self: flex-start;
+}
+
+.analysis__column {
+  align-self: stretch;
+}
+
+/* Sin datos todavía (t = 0) el contenido se centra en la columna: el espacio
+   libre se lee como un estado vacío y no como un agujero. */
+.analysis__column.is-empty > :not(.analysis__column-head) {
+  margin-block: auto;
 }
 
 .analysis__main {
@@ -679,7 +733,7 @@
   box-shadow: 0 0 12px rgba(163, 22, 42, 0.45);
 }
 
-/* --- Columnas arrastrables (Estacionaria e Inspector) ------------------ *
+/* --- Columna arrastrable (Inspector de paso t) ------------------------ *
  * El ancho lo fija el divisor; con width: 0 la columna queda oculta pero
  * SIGUE MONTADA, así que no se pierden resultados ni parámetros. */
 
@@ -728,9 +782,8 @@
   color: #fff;
 }
 
-/* Cuanto más columnas se abren, más cede el escenario al panel (sólo en
-   pantallas donde la rejilla va en dos columnas):
-     0 columnas → 5 / 7  ·  1 columna → 4 / 8  ·  2 columnas → 3 / 9 */
+/* Al abrir la columna del Inspector el escenario cede una columna de la
+   rejilla (sólo en pantallas donde va en dos columnas): 5 / 7 → 4 / 8. */
 @media (min-width: 1181px) {
   .simulation.has-1col .cell--stage {
     grid-column: span 4;
@@ -738,13 +791,5 @@
 
   .simulation.has-1col .cell--side {
     grid-column: span 8;
-  }
-
-  .simulation.has-2cols .cell--stage {
-    grid-column: span 3;
-  }
-
-  .simulation.has-2cols .cell--side {
-    grid-column: span 9;
   }
 }
