@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import BackgroundSection from './components/BackgroundSection';
-import FundamentosSection from './components/FundamentosSection';
 import GraphBackdrop from './components/GraphBackdrop';
 import SimulationPage from './features/spatiotemporal/components/SimulationPage';
 
 /** Orden de la presentación: de la portada a la simulación. */
 const STEPS = [
   { id: 'background', label: 'Background de presentación' },
-  { id: 'fundamentos', label: 'Fundamentos matemáticos' },
   { id: 'simulacion', label: 'Simulación' },
 ];
 
@@ -39,8 +37,7 @@ function App() {
   return (
     <div className="app">
       {renderStep(0, <BackgroundSection />)}
-      {renderStep(1, <FundamentosSection />, true)}
-      {renderStep(2, <SimulationPage />, true)}
+      {renderStep(1, <SimulationPage />, true)}
 
       <footer className="wizard">
         <button

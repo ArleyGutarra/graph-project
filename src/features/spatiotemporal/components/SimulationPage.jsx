@@ -23,33 +23,21 @@ const MODES = [
   { id: 'simulation', label: '2. Simular y analizar' },
 ];
 
-/** Ancho por defecto de la columna del Inspector (px). */
-const DEFAULT_INSPECTOR_WIDTH = 380;
+/** Anchos iniciales de las dos columnas arrastrables (px). */
+const INITIAL_STATIONARY = 0; // la Estacionaria arranca cerrada
+const INITIAL_INSPECTOR = 380;
+const OPEN_STATIONARY = 320; // ancho al abrirla con doble clic / teclado
 
 /** Por debajo de este umbral el arrastre cierra la columna. */
-const INSPECTOR_CLOSE_AT = 150;
+const COLUMN_CLOSE_AT = 140;
+
+/** Ancho mínimo de una columna abierta y espacio mínimo para la principal. */
+const COLUMN_MIN = 260;
+const MAIN_MIN = 340;
+const DIVIDER_W = 16;
 
 /** Tamaño máximo del croquis X (coincide con el deslizador "Tamaño de X"). */
 const MAX_SKETCH_SIZE = 8;
-
-const TOOLS = [
-  { id: 'move', label: '✥ Mover' },
-  { id: 'addNode', label: '+ Nodo' },
-  { id: 'edge', label: '☍ Arista' },
-  { id: 'paint', label: '✎ Pintar' },
-  { id: 'delete', label: '✕ Borrar' },
-];
-
-const HINTS = {
-  move:
-    'Modo {layer} · Mantén el clic izquierdo y arrastra un nodo para colocarlo donde quieras: ' +
-    'se mueve junto a su posición xᵢ (desde el croquis arrastras el xᵢ directamente). ' +
-    'Con Shift lo sueltas sobre la xⱼ más cercana y reasignas p₀(vᵢ).',
-  addNode: 'Modo {layer} · Haz clic en una posición libre del croquis para añadir un vértice a G₀.',
-  edge: 'Modo {layer} · Haz clic en vᵢ y después en vⱼ para (des)conectar la arista {vᵢ, vⱼ}.',
-  paint: 'Modo {layer} · Elige un color abajo y haz clic en un vértice para pintarlo.',
-  delete: 'Modo {layer} · Haz clic en una arista para borrarla, o en un vértice para eliminarlo.',
-};
 
 function edgesOf(adj, n) {
   const edges = [];
@@ -66,7 +54,8 @@ function edgesOf(adj, n) {
  *
  *   cabecera  → marca + stepper (1 Configurar → 2 Simular) + acción
  *   vista 1   → CAPA ACTIVA (Grafo G₀ / Croquis X) + preset X + lienzo con
- *               las 5 herramientas, swatches y controles del mapa ·
+ *               gestos directos (arrastrar, clic en fondo, dos clics en
+ *               vértices, dígito de color) y controles del mapa ·
  *               CONFIGURACIÓN INICIAL Y PARÁMETROS (3 tarjetas)
  *   vista 2   → chips (t, t⁻/t⁺, |E|) + visor + leyenda + transporte ·
  *               PANEL DE ANÁLISIS con pestañas (Gráficas / Estacionaria /
@@ -84,12 +73,12 @@ export default function SimulationPage() {
   const [view, setView] = useState('graph');
   // Columna del Inspector de paso t: anchura en px (0 = cerrada). Se abre y
   // cierra arrastrando el divisor "↔" (o con doble clic / teclado sobre él).
-  const [inspectorWidth, setInspectorWidth] = useState(DEFAULT_INSPECTOR_WIDTH);
+  const [stationaryWidth, setStationaryWidth] = useState(INITIAL_STATIONARY);
+  const [inspectorWidth, setInspectorWidth] = useState(INITIAL_INSPECTOR);
   const analysisRef = useRef(null);
-  const resizeRef = useRef(null); // pointerId durante el arrastre del divisor
+  // { which, pointerId, x0, w0 } mientras se arrastra un divisor
+  const resizeRef = useRef(null);
   const [selected, setSelected] = useState(null);
-  const [tool, setTool] = useState('move');
-  const [paintColor, setPaintColor] = useState(1);
 
   const t = chain.t;
   const points = chain.history.points;
@@ -143,11 +132,6 @@ export default function SimulationPage() {
           subphase: config.subphase,
         });
   const shownEdges = edgesOf(displayed.adj, displayed.n).length;
-
-  // Posiciones de X todavía sin ocupar: limitan al botón "+" y al teclado.
-  const occupied = new Set(displayed.pos);
-  let freeSlots = 0;
-  for (let i = 0; i < sketch.size; i++) if (!occupied.has(i)) freeSlots += 1;
 
   const commitG0 = (next, patch = {}) =>
     applyGraphChange({
@@ -236,7 +220,8 @@ export default function SimulationPage() {
   };
 
   const handleBackground = (target) => {
-    if (tool !== 'addNode') return;
+    // Clic en el fondo de la capa Grafo → añade un vértice en esa posición.
+    if (view !== 'graph') return;
     addVertex(target);
   };
 
@@ -257,11 +242,11 @@ export default function SimulationPage() {
     commitG0(g0);
   };
 
-  const handleNodeAction = (vertex, action) => {
+  const handleNodeAction = (vertex, action, color) => {
     const g0 = snapshotG0();
 
     if (action === 'paint') {
-      g0.colors[vertex] = paintColor;
+      g0.colors[vertex] = Math.min(Math.max(0, color ?? 0), config.colorCount - 1);
       commitG0(g0);
       return;
     }
@@ -314,6 +299,8 @@ export default function SimulationPage() {
       selected,
       add: addVertex,
       remove: (vertex) => handleNodeAction(vertex, 'delete'),
+      paint: (vertex, color) => handleNodeAction(vertex, 'paint', color),
+      colorCount: config.colorCount,
       undo,
       redo,
       canUndo: history.past.length > 0,
@@ -327,7 +314,7 @@ export default function SimulationPage() {
       if (!context || context.mode !== 'editor') return;
 
       // El componente sigue montado mientras navegas por la portada o los
-      // fundamentos (el paso sólo queda `hidden`): no se actúa allí.
+      // portada (el paso sólo queda `hidden`): no se actúa allí.
       if (rootRef.current?.closest('[hidden]')) return;
 
       const target = event.target;
@@ -361,6 +348,13 @@ export default function SimulationPage() {
       } else if (event.key === '+' || event.key === '=') {
         event.preventDefault();
         context.add(null);
+      } else if (event.key >= '0' && event.key <= '9') {
+        // Dígito 0…(c) → pinta el vértice seleccionado con ese color.
+        const color = Number(event.key);
+        if (context.selected === null || context.selected === undefined) return;
+        if (color >= context.colorCount) return;
+        event.preventDefault();
+        context.paint(context.selected, color);
       }
     };
 
@@ -456,21 +450,58 @@ export default function SimulationPage() {
     n: sim.vertexCount,
   });
 
+  const openColumns = (stationaryWidth > 0 ? 1 : 0) + (inspectorWidth > 0 ? 1 : 0);
   const inspectorOpen = inspectorWidth > 0;
 
-  /** Reabre la columna si está cerrada (p. ej. al pulsar un vértice). */
-  const openInspector = () =>
-    setInspectorWidth((w) => (w > 0 ? w : DEFAULT_INSPECTOR_WIDTH));
+  const widthOf = (which) => (which === 'stationary' ? stationaryWidth : inspectorWidth);
+  const setWidthOf = (which, value) =>
+    which === 'stationary' ? setStationaryWidth(value) : setInspectorWidth(value);
+  const otherWidth = (which) => (which === 'stationary' ? inspectorWidth : stationaryWidth);
 
-  const clampInspector = (next, containerWidth) => {
-    if (!Number.isFinite(next) || next < INSPECTOR_CLOSE_AT) return 0;
-    const max = Math.max(300, containerWidth - 340);
-    return Math.min(Math.max(next, 300), max);
+  /** Presupuesto disponible (px) para las columnas arrastrables. */
+  const columnBudget = (which) => {
+    const rect = analysisRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width) return 900;
+    // Al abrir la SEGUNDA columna el escenario cede una columna de la rejilla
+    // (8/12 → 9/12, ≈ +12,5 %): se proyecta ese ancho para que el arrastre no
+    // se quede corto justo cuando se cruza el umbral.
+    const projected = widthOf(which) === 0 && otherWidth(which) > 0;
+    const width = projected ? rect.width * 1.125 : rect.width;
+    return Math.max(0, width - DIVIDER_W - MAIN_MIN);
   };
 
+  const clampColumn = (next, other, budget) => {
+    if (!Number.isFinite(next) || next < COLUMN_CLOSE_AT) return 0;
+    const max = budget - other;
+    if (max < COLUMN_MIN) return 0;
+    return Math.min(Math.max(next, COLUMN_MIN), max);
+  };
+
+  /** Reabre la columna del Inspector si está cerrada (p. ej. al pulsar un vértice). */
+  const openInspector = () =>
+    setInspectorWidth((w) =>
+      w > 0
+        ? w
+        : clampColumn(INITIAL_INSPECTOR, stationaryWidth, columnBudget('inspector')) ||
+          COLUMN_MIN
+    );
+
+  /**
+   * Arrastre de un divisor: arrastrar hacia la IZQUIERDA ensancha la columna
+   * que queda a su derecha (por eso `w0 − Δx` para las dos).
+   */
+  /** La columna que controla un divisor viaja en `data-column`. */
+  const columnOf = (event) => event.currentTarget?.dataset?.column || 'inspector';
+
   const startResize = (event) => {
+    const which = columnOf(event);
     event.preventDefault();
-    resizeRef.current = event.pointerId;
+    resizeRef.current = {
+      which,
+      pointerId: event.pointerId,
+      x0: event.clientX,
+      w0: widthOf(which),
+    };
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId);
     } catch {
@@ -479,11 +510,17 @@ export default function SimulationPage() {
   };
 
   const onResizeMove = (event) => {
-    if (resizeRef.current === null || !analysisRef.current) return;
+    const drag = resizeRef.current;
+    if (!drag || !analysisRef.current) return;
     const rect = analysisRef.current.getBoundingClientRect();
     if (!rect.width) return;
-    // Distancia del cursor al borde derecho del panel = ancho del Inspector.
-    setInspectorWidth(clampInspector(rect.right - event.clientX, rect.width));
+
+    const next = drag.w0 - (event.clientX - drag.x0);
+    const other = otherWidth(drag.which);
+    const projected = drag.w0 === 0 && other > 0;
+    const width = projected ? rect.width * 1.125 : rect.width;
+
+    setWidthOf(drag.which, clampColumn(next, other, Math.max(0, width - DIVIDER_W - MAIN_MIN)));
   };
 
   const endResize = (event) => {
@@ -496,26 +533,41 @@ export default function SimulationPage() {
     }
   };
 
-  const toggleInspector = () =>
-    setInspectorWidth((w) => (w > 0 ? 0 : DEFAULT_INSPECTOR_WIDTH));
+  const toggleColumn = (which) => {
+    if (widthOf(which) > 0) {
+      setWidthOf(which, 0);
+      return;
+    }
+    const open = which === 'stationary' ? OPEN_STATIONARY : INITIAL_INSPECTOR;
+    setWidthOf(
+      which,
+      clampColumn(open, otherWidth(which), columnBudget(which)) || COLUMN_MIN
+    );
+  };
 
   const onSplitterKey = (event) => {
-    const width = analysisRef.current?.getBoundingClientRect().width || 900;
+    const which = columnOf(event);
+    const current = widthOf(which);
+    const other = otherWidth(which);
+    const budget = columnBudget(which);
+
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       const delta = event.key === 'ArrowRight' ? -24 : 24;
-      setInspectorWidth((w) => clampInspector((w || 300) + delta, width));
+      setWidthOf(which, clampColumn((current || COLUMN_MIN) + delta, other, budget));
     } else if (event.key === 'Home') {
       event.preventDefault();
-      setInspectorWidth(0);
+      setWidthOf(which, 0);
     } else if (event.key === 'End') {
       event.preventDefault();
-      setInspectorWidth(DEFAULT_INSPECTOR_WIDTH);
+      toggleColumn(which);
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      toggleInspector();
+      toggleColumn(which);
     }
   };
+
+  const onSplitterDoubleClick = (event) => toggleColumn(columnOf(event));
 
   const generateRun = () => {
     sim.reset();
@@ -528,11 +580,15 @@ export default function SimulationPage() {
     sim.stop();
   };
 
-  const layerLabel = view === 'croquis' ? 'Croquis X (Mapa)' : 'Grafo inicial G₀';
-
   return (
     <main
-      className={`simulation${mode === 'simulation' && inspectorOpen ? ' has-inspector' : ''}`}
+      className={`simulation${
+        mode === 'simulation' && openColumns > 0
+          ? openColumns > 1
+            ? ' has-2cols'
+            : ' has-1col'
+          : ''
+      }`}
       ref={rootRef}
     >
       {/* ---------- Cabecera global ---------- */}
@@ -626,10 +682,8 @@ export default function SimulationPage() {
               t={0}
               view={view}
               mode="editor"
-              tool={tool}
               selected={selected}
               onSelect={setSelected}
-              onNodeAction={handleNodeAction}
               onEdgeAction={handleEdgeAction}
               onDrop={handleDrop}
               onBackground={handleBackground}
@@ -643,32 +697,8 @@ export default function SimulationPage() {
               mapEnabled={config.mapEnabled !== false}
             />
 
-            <p className="stage__hint">{HINTS[tool].replace('{layer}', layerLabel)}</p>
-            <p className="stage__hint">
-              <span className="stage__shortcuts">
-                arrastra = mover xᵢ libre · Shift + arrastra = reasignar p₀(vᵢ) · doble clic =
-                renombrar · Supr = quitar · + = añadir (
-                {freeSlots > 0 ? `${freeSlots} posiciones libres en X` : 'X al tope: m crecerá'}
-                ) · Ctrl+Z / Ctrl+Y = deshacer / rehacer
-              </span>
-            </p>
-
-            {/* Herramientas */}
+            {/* Historial de ediciones del grafo */}
             <div className="toolbar">
-              <div className="toolbar__group" role="group" aria-label="Herramientas">
-                {TOOLS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`toolbar__button${tool === item.id ? ' is-active' : ''}`}
-                    aria-pressed={tool === item.id}
-                    onClick={() => setTool(item.id)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
               <div className="toolbar__group" role="group" aria-label="Historial de ediciones">
                 <button
                   className="toolbar__button"
@@ -689,23 +719,6 @@ export default function SimulationPage() {
                   ↷ Rehacer
                 </button>
               </div>
-
-              {tool === 'paint' ? (
-                <div className="toolbar__swatches" role="group" aria-label="Color a pintar">
-                  {Array.from({ length: sketch.colorCount }, (_, i) => (
-                    <button
-                      key={`sw-${i}`}
-                      type="button"
-                      className={`swatch${paintColor === i ? ' is-active' : ''}`}
-                      aria-pressed={paintColor === i}
-                      onClick={() => setPaintColor(i)}
-                    >
-                      <i style={{ background: colorOf(i) }} />
-                      C{subscript(i)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
             </div>
 
             {/* Controles del mapa */}
@@ -880,8 +893,7 @@ export default function SimulationPage() {
             <div className="panel__head">
               <span className="panel__title">Panel de análisis</span>
               <span className="panel__hint">
-                Gráficas + Estacionaria en una sola sección · arrastra ↔ para abrir o cerrar el
-                Inspector
+                Arrastra los dos ↔ para abrir o cerrar las columnas de Estacionaria e Inspector
               </span>
             </div>
 
@@ -947,9 +959,55 @@ export default function SimulationPage() {
                   </section>
                 </div>
 
-                <h2 className="analysis__section">
-                  Estacionaria π* · verificación empírica y exacta del Teorema
-                </h2>
+              </div>
+
+              {/* ---------- Columna 1 · Estacionaria ---------- */}
+              <div
+                className="analysis__splitter"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Redimensionar la sección Estacionaria"
+                aria-valuenow={stationaryWidth}
+                data-column="stationary"
+                tabIndex={0}
+                title={
+                  stationaryWidth > 0
+                    ? 'Arrastra → para cerrar Estacionaria · doble clic para alternar'
+                    : 'Arrastra ← para abrir Estacionaria · doble clic para alternar'
+                }
+                onPointerDown={startResize}
+                onPointerMove={onResizeMove}
+                onPointerUp={endResize}
+                onPointerCancel={endResize}
+                onDoubleClick={onSplitterDoubleClick}
+                onKeyDown={onSplitterKey}
+              >
+                <span className="analysis__grip" aria-hidden="true">
+                  ↔
+                </span>
+              </div>
+
+              <div
+                className={`analysis__column analysis__stationary${
+                  stationaryWidth > 0 ? ' is-open' : ''
+                }`}
+                style={{ width: stationaryWidth }}
+                aria-hidden={stationaryWidth === 0}
+              >
+                <div className="analysis__column-head">
+                  <h2 className="analysis__section">
+                    Estacionaria π* · verificación empírica y exacta del Teorema
+                  </h2>
+                  <button
+                    type="button"
+                    className="analysis__close"
+                    onClick={() => setStationaryWidth(0)}
+                    title="Cerrar la sección Estacionaria (también puedes arrastrar el divisor)"
+                    aria-label="Cerrar la sección Estacionaria"
+                  >
+                    ✕
+                  </button>
+                </div>
                 <StationaryPanel
                   sketch={sketch}
                   config={config}
@@ -964,12 +1022,14 @@ export default function SimulationPage() {
                 />
               </div>
 
+              {/* ---------- Columna 2 · Inspector ---------- */}
               <div
                 className="analysis__splitter"
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Redimensionar el Inspector de paso t"
                 aria-valuenow={inspectorWidth}
+                data-column="inspector"
                 tabIndex={0}
                 title={
                   inspectorOpen
@@ -980,7 +1040,7 @@ export default function SimulationPage() {
                 onPointerMove={onResizeMove}
                 onPointerUp={endResize}
                 onPointerCancel={endResize}
-                onDoubleClick={toggleInspector}
+                onDoubleClick={onSplitterDoubleClick}
                 onKeyDown={onSplitterKey}
               >
                 <span className="analysis__grip" aria-hidden="true">
@@ -988,9 +1048,14 @@ export default function SimulationPage() {
                 </span>
               </div>
 
-              {inspectorOpen ? (
-                <div className="analysis__inspector" style={{ width: inspectorWidth }}>
-                  <div className="analysis__inspector-head">
+              <div
+                className={`analysis__column analysis__inspector${
+                  inspectorWidth > 0 ? ' is-open' : ''
+                }`}
+                style={{ width: inspectorWidth }}
+                aria-hidden={inspectorWidth === 0}
+              >
+                  <div className="analysis__column-head">
                     <span className="panel__title">Inspector de paso t</span>
                     <button
                       type="button"
@@ -1013,8 +1078,7 @@ export default function SimulationPage() {
                     t={t}
                     subphase={config.subphase}
                   />
-                </div>
-              ) : null}
+              </div>
             </div>
           </div>
         )}

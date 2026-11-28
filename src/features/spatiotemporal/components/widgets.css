@@ -84,12 +84,6 @@
   z-index: 3;
 }
 
-.stage__shortcuts {
-  color: #6f6a7a;
-  font-size: 10.5px;
-  font-family: var(--mono);
-}
-
 /* ---------- Barra de herramientas (vista 1) ---------- */
 
 .toolbar {
@@ -124,46 +118,6 @@
 .toolbar__button:hover {
   border-color: #3d3946;
   color: #fff;
-}
-
-.toolbar__button.is-active {
-  background: var(--red-soft);
-  border-color: var(--red-soft);
-  color: #fff;
-  box-shadow: 0 0 16px rgba(163, 22, 42, 0.45);
-}
-
-.toolbar__swatches {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-left: auto;
-}
-
-.swatch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #0b0a0e;
-  color: #b9b5c4;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  cursor: pointer;
-}
-
-.swatch i {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-}
-
-.swatch.is-active {
-  border-color: #fff;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .toolbar--map {
@@ -360,7 +314,7 @@
   pointer-events: none;
 }
 
-.stage__svg--tool {
+.stage__svg--editor {
   cursor: crosshair;
 }
 
@@ -374,6 +328,7 @@
 
 .stage__edge-hits line {
   stroke: transparent;
+  pointer-events: stroke;
   stroke-width: 18;
   stroke-linecap: round;
   cursor: pointer;
@@ -614,7 +569,7 @@
   cursor: grabbing;
 }
 
-.stage__svg--tool .stage__vertex {
+.stage__svg--editor .stage__vertex {
   cursor: grab;
 }
 
@@ -643,6 +598,14 @@
   display: flex;
   align-items: stretch;
   min-width: 0;
+}
+
+/* Cada columna mide su propio contenido; sólo los divisores se estiran hasta
+   la altura total (para que su filete recorra toda el área). Si no, cuando una
+   columna es más larga que la principal quedan huecos vacíos al final. */
+.analysis__main,
+.analysis__column {
+  align-self: flex-start;
 }
 
 .analysis__main {
@@ -716,26 +679,36 @@
   box-shadow: 0 0 12px rgba(163, 22, 42, 0.45);
 }
 
-/* --- Columna del Inspector -------------------------------------------- */
+/* --- Columnas arrastrables (Estacionaria e Inspector) ------------------ *
+ * El ancho lo fija el divisor; con width: 0 la columna queda oculta pero
+ * SIGUE MONTADA, así que no se pierden resultados ni parámetros. */
 
-.analysis__inspector {
+.analysis__column {
   flex: 0 0 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-left: 12px;
-  border-left: 1px solid var(--line-soft);
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
-.analysis__inspector-head {
+.analysis__column.is-open {
+  padding-left: 12px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.analysis__column-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--line-soft);
+}
+
+.analysis__column-head .analysis__section {
+  margin: 0;
 }
 
 .analysis__close {
@@ -755,14 +728,23 @@
   color: #fff;
 }
 
-/* Con el Inspector abierto el escenario cede sitio a las gráficas y a la
-   columna (sólo en pantallas donde la rejilla va en dos columnas). */
+/* Cuanto más columnas se abren, más cede el escenario al panel (sólo en
+   pantallas donde la rejilla va en dos columnas):
+     0 columnas → 5 / 7  ·  1 columna → 4 / 8  ·  2 columnas → 3 / 9 */
 @media (min-width: 1181px) {
-  .simulation.has-inspector .cell--stage {
+  .simulation.has-1col .cell--stage {
     grid-column: span 4;
   }
 
-  .simulation.has-inspector .cell--side {
+  .simulation.has-1col .cell--side {
     grid-column: span 8;
+  }
+
+  .simulation.has-2cols .cell--stage {
+    grid-column: span 3;
+  }
+
+  .simulation.has-2cols .cell--side {
+    grid-column: span 9;
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { subscript } from '../domain/initialState';
 import {
   CANVAS,
@@ -14,15 +14,23 @@ import { displayedState } from '../domain/stepDetail';
 const MAP_SRC = `${import.meta.env.BASE_URL}croquis.jpg`;
 
 /**
+ * Ventana en la que un segundo clic sobre otro vértice se interpreta como
+ * «(des)conectar la arista» en lugar de cambiar sólo la selección.
+ */
+const EDGE_ARM_MS = 3000;
+
+/**
  * Escenario con dos vistas conmutables y dos modos de uso:
  *
  *  - `view = 'graph'`    → el grafo temporal G dibujado SOBRE el croquis X.
  *  - `view = 'croquis'`  → el mapa del campus a sangre con E(X) encima.
  *
- *  - `mode = 'editor'`   → vista 1 "Configurar escenario": las 5 herramientas
- *      (Mover, +Nodo, Arista, Pintar, Borrar) emiten eventos semánticos
- *      (`onDrop`, `onBackground`, `onNodeAction`, `onEdgeAction`) y la
- *      asignación concreta de G₀ la decide el componente contenedor.
+ *  - `mode = 'editor'`   → vista 1 "Configurar escenario": los gestos son
+ *      directos, sin barra de herramientas (arrastrar = mover xᵢ, clic en el
+ *      fondo = añadir vértice, dos clics en vértices = arista, clic en una
+ *      arista = borrarla) y emiten eventos semánticos (`onDrop`,
+ *      `onBackground`, `onEdgeAction`, `onMovePosition`) que el componente
+ *      contenedor traduce en ediciones de G₀.
  *  - `mode = 'simulation'` → vista 2: sólo selección de vértice + Diff.
  *
  * Los micro-estados t⁻ / t⁺ se resuelven aquí: `previous` es t⁻ y el detalle
@@ -37,12 +45,10 @@ export default function GraphStage({
   t,
   view = 'graph',
   mode = 'simulation',
-  tool = 'move',
   subphase = 'plus',
   showDiff = false,
   selected,
   onSelect,
-  onNodeAction,
   onEdgeAction,
   onDrop,
   onMovePosition,
@@ -60,7 +66,7 @@ export default function GraphStage({
   const [drag, setDrag] = useState(null); // { vertex, position, start, shift }
   const [pointerPos, setPointerPos] = useState(null); // cursor durante el arrastre
   const [hoverPos, setHoverPos] = useState(null); // posición candidata
-  const [pendingNode, setPendingNode] = useState(null); // 1er clic de "Arista"
+  const [pendingNode, setPendingNode] = useState(null); // 1er clic para la arista
   const [renaming, setRenaming] = useState(null); // { vertex, value }
 
   const isCroquis = view === 'croquis';
@@ -180,7 +186,8 @@ export default function GraphStage({
       return;
     }
 
-    if (tool === 'addNode') setHoverPos(nearestPosition(layout, point));
+    // Señala dónde se insertaría un vértice nuevo con un clic en el fondo.
+    if (view === 'graph') setHoverPos(nearestPosition(layout, point));
   };
 
   const handlePointerUp = (event) => {
@@ -204,7 +211,7 @@ export default function GraphStage({
 
   /** Arrastre desde el croquis: mueve la posición xᵢ directamente. */
   const handlePositionPointerDown = (event, position) => {
-    if (!isEditor || tool !== 'move' || renaming) return;
+    if (!isEditor || renaming) return;
     event.stopPropagation();
     const point = toSvgPoint(event);
     capturePointer(event.pointerId);
@@ -219,38 +226,34 @@ export default function GraphStage({
     }
     event.stopPropagation();
 
-    // Todo clic sobre un nodo lo selecciona: es el que usarán Supr, Enter o
-    // la herramienta activa.
+    // Un segundo clic (dentro de EDGE_ARM_MS) sobre OTRO vértice (des)conecta
+    // la arista entre ambos: así no hace falta una herramienta "Arista".
+    if (pendingNode !== null && pendingNode !== vertex) {
+      onEdgeAction?.(pendingNode, vertex, 'edge');
+      setPendingNode(null);
+      onSelect?.(vertex);
+      return;
+    }
+
+    // Todo clic sobre un nodo lo selecciona: es el que usarán Supr, los
+    // dígitos de color y el doble clic de renombrado.
     onSelect?.(vertex);
 
     if (renaming) return;
 
-    if (tool === 'move') {
-      const point = toSvgPoint(event);
-      capturePointer(event.pointerId);
-      setPointerPos(null);
-      setDrag({
-        vertex,
-        position: shown.pos[vertex],
-        start: point,
-        shift: event.shiftKey,
-      });
-      return;
-    }
-    if (tool === 'addNode') return;
+    // Arrastre libre del nodo y de su posición xᵢ (botón izquierdo).
+    const point = toSvgPoint(event);
+    capturePointer(event.pointerId);
+    setPointerPos(null);
+    setDrag({
+      vertex,
+      position: shown.pos[vertex],
+      start: point,
+      shift: event.shiftKey,
+    });
 
-    if (tool === 'edge') {
-      if (pendingNode === null) {
-        setPendingNode(vertex);
-        return;
-      }
-      if (pendingNode !== vertex) onEdgeAction?.(pendingNode, vertex, 'edge');
-      setPendingNode(null);
-      return;
-    }
-
-    setPendingNode(null);
-    onNodeAction?.(vertex, tool);
+    // Deja armado el segundo clic para (des)conectar la arista.
+    setPendingNode(vertex);
   };
 
   const commitRename = () => {
@@ -261,6 +264,14 @@ export default function GraphStage({
     }
     setRenaming(null);
   };
+
+  // El brazo del segundo clic caduca solo: si el usuario sólo quería mirar
+  // dos vértices, la arista no se (des)conecta por accidente.
+  useEffect(() => {
+    if (pendingNode === null) return undefined;
+    const timer = setTimeout(() => setPendingNode(null), EDGE_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [pendingNode]);
 
   const handleEdgePointerDown = (event, edge) => {
     event.stopPropagation();
@@ -280,7 +291,7 @@ export default function GraphStage({
     </button>
   );
 
-  const pointerTool = isEditor && ['move', 'addNode'].includes(tool);
+  const pointerTool = isEditor;
 
   return (
     <div className="stage">
@@ -329,7 +340,7 @@ export default function GraphStage({
       <svg
         ref={svgRef}
         className={`stage__svg${isCroquis ? ' stage__svg--croquis' : ''}${
-          pointerTool ? ' stage__svg--tool' : ''
+          pointerTool ? ' stage__svg--editor' : ''
         }${drag ? ' stage__svg--dragging' : ''}`}
         viewBox="0 0 500 400"
         role="img"
@@ -505,7 +516,7 @@ export default function GraphStage({
             ) : null}
 
             {/* Zonas de clic sobre aristas (sólo la herramienta Borrar) */}
-            {isEditor && tool === 'delete' ? (
+            {isEditor ? (
               <g className="stage__edge-hits">
                 {graphEdges.map((edge) => (
                   <line

@@ -144,6 +144,16 @@
   display: none;
 }
 
+/* Los dos paneles de la fila se alinean arriba en vez de estirarse hasta la
+   altura del más largo. Si se estiran, `.stage { flex: 1 1 auto }` reparte el
+   sobrante dentro del escenario y queda un gran hueco vacío por encima de la
+   leyenda y de los controles (pasa cuando la columna derecha es larga, p. ej.
+   con la sección Estacionaria abierta). */
+.cell--stage,
+.cell--side {
+  align-self: start;
+}
+
 .panel {
   position: relative;
   display: flex;

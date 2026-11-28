@@ -49,12 +49,10 @@ describe('SimulationPage', () => {
     // Rejilla de validación con los ítems del Teorema
     expect(container.querySelectorAll('.validator-item').length).toBeGreaterThanOrEqual(5);
 
-    // Barra de las 5 herramientas (el grupo "Herramientas", sin Deshacer/Rehacer)
-    const toolsGroup = container.querySelector('[aria-label="Herramientas"]');
-    const tools = [...toolsGroup.querySelectorAll('.toolbar__button')].map((b) => b.textContent);
-    expect(tools).toEqual(['✥ Mover', '+ Nodo', '☍ Arista', '✎ Pintar', '✕ Borrar']);
+    // Sin barra de herramientas: los gestos son directos
+    expect(container.querySelector('[aria-label="Herramientas"]')).toBeNull();
 
-    // Historial de ediciones del grafo
+    // Historial de ediciones del grafo (los atajos siguen en Ctrl+Z / Ctrl+Y)
     const historyGroup = container.querySelector('[aria-label="Historial de ediciones"]');
     const historyButtons = [...historyGroup.querySelectorAll('.toolbar__button')].map(
       (b) => b.textContent
@@ -114,7 +112,7 @@ describe('SimulationPage', () => {
     expect(container.querySelector('.analysis__splitter')).not.toBeNull();
   });
 
-  it('el divisor abre y cierra la columna del Inspector al arrastrarlo', async () => {
+  it('los dos divisores abren y cierran las columnas de Estacionaria e Inspector', async () => {
     await render();
 
     // El panel de análisis sólo existe en la vista 2
@@ -123,58 +121,62 @@ describe('SimulationPage', () => {
       stepperButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
+    // jsdom no calcula cajas: se le asigna la del panel con 2 columnas
     const analysis = container.querySelector('.analysis');
     analysis.getBoundingClientRect = () => ({
       left: 0,
       top: 0,
-      width: 800,
-      right: 800,
+      width: 1010,
+      right: 1010,
       height: 600,
       bottom: 600,
     });
 
-    const splitter = () => container.querySelector('.analysis__splitter');
+    const dividers = () => container.querySelectorAll('.analysis__splitter');
+    const stationary = () => container.querySelector('.analysis__stationary');
     const inspector = () => container.querySelector('.analysis__inspector');
+    const width = (el) => parseFloat(el.style.width);
 
-    // Arrastrar hacia la derecha (por debajo del umbral) cierra la columna
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointerdown', { bubbles: true, clientX: 780, pointerId: 1 })
-      );
-    });
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointermove', { bubbles: true, clientX: 770, pointerId: 1 })
-      );
-    });
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointerup', { bubbles: true, clientX: 770, pointerId: 1 })
-      );
-    });
-    expect(inspector()).toBeNull();
+    const drag = async (index, from, to, id) => {
+      const fire = async (type, clientX) => {
+        await act(async () => {
+          dividers()[index].dispatchEvent(
+            new MouseEvent(type, { bubbles: true, clientX, pointerId: id })
+          );
+        });
+      };
+      await fire('pointerdown', from);
+      await fire('pointermove', to);
+      await fire('pointerup', to);
+    };
 
-    // Arrastrar hacia la izquierda lo vuelve a abrir y fija el ancho
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointerdown', { bubbles: true, clientX: 790, pointerId: 2 })
-      );
-    });
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointermove', { bubbles: true, clientX: 420, pointerId: 2 })
-      );
-    });
-    await act(async () => {
-      splitter().dispatchEvent(
-        new MouseEvent('pointerup', { bubbles: true, clientX: 420, pointerId: 2 })
-      );
-    });
+    expect(dividers()).toHaveLength(2);
 
-    const reopened = inspector();
-    expect(reopened).not.toBeNull();
-    // rect.right (800) − clientX (420) = 380 px, dentro de [300, 460]
-    expect(parseFloat(reopened.style.width)).toBe(380);
+    // Estado inicial: Estacionaria cerrada, Inspector abierto a 380 px
+    expect(width(stationary())).toBe(0);
+    expect(width(inspector())).toBe(380);
+    expect(container.querySelector('main').className).toContain('has-1col');
+
+    // El PRIMER divisor controla Estacionaria: arrastrar a la izquierda la abre
+    await drag(0, 500, 200, 1);
+    expect(width(stationary())).toBe(300);
+    expect(container.querySelector('main').className).toContain('has-2cols');
+
+    // ... y arrastrarlo a la derecha la cierra
+    await drag(0, 500, 800, 2);
+    expect(width(stationary())).toBe(0);
+    expect(container.querySelector('main').className).toContain('has-1col');
+
+    // El SEGUNDO divisor controla el Inspector
+    await drag(1, 700, 1000, 3);
+    expect(width(inspector())).toBe(0);
+
+    await drag(1, 700, 400, 4);
+    expect(width(inspector())).toBe(300);
+
+    // La columna sigue montada con ancho 0: no se pierde su estado
+    expect(inspector().querySelector('.inspector')).not.toBeNull();
+    expect(stationary().querySelector('.stationary')).not.toBeNull();
   });
 
   it('muestra la sección Estacionaria con sus tres bloques', async () => {
@@ -366,6 +368,52 @@ describe('SimulationPage', () => {
     expect(Number(ring.getAttribute('cx'))).toBe(250);
   });
 
+  it('cada columna tiene su botón ✕ para cerrarla', async () => {
+    await render();
+
+    const stepperButtons = [...container.querySelectorAll('.stepper__button')];
+    await act(async () => {
+      stepperButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const closeButtons = () => [...container.querySelectorAll('.analysis__close')];
+    const stationary = () => container.querySelector('.analysis__stationary');
+    const inspector = () => container.querySelector('.analysis__inspector');
+    const width = (el) => parseFloat(el.style.width);
+
+    // Uno por columna: Estacionaria primero, Inspector después
+    expect(closeButtons()).toHaveLength(2);
+    expect(closeButtons()[0].getAttribute('aria-label')).toContain('Estacionaria');
+    expect(closeButtons()[1].getAttribute('aria-label')).toContain('Inspector');
+    expect(width(stationary())).toBe(0);
+    expect(width(inspector())).toBe(380);
+
+    // Se abre Estacionaria (doble clic en su divisor)…
+    await act(async () => {
+      container
+        .querySelectorAll('.analysis__splitter')[0]
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    });
+    expect(width(stationary())).toBeGreaterThan(0);
+    expect(container.querySelector('main').className).toContain('has-2cols');
+
+    // …y su ✕ la vuelve a cerrar
+    await act(async () => {
+      closeButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(width(stationary())).toBe(0);
+
+    // El ✕ del Inspector la cierra también
+    await act(async () => {
+      closeButtons()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(width(inspector())).toBe(0);
+
+    // Con las dos fuera no hay clase de rejilla y siguen montadas (2 botones)
+    expect(container.querySelector('main').className).not.toContain('has-');
+    expect(closeButtons()).toHaveLength(2);
+  });
+
   it('el doble clic abre el renombrado en línea y Enter lo guarda', async () => {
     await render();
 
@@ -390,7 +438,7 @@ describe('SimulationPage', () => {
     expect(container.textContent).toContain('centro');
   });
 
-  it('los atajos no actúan cuando el paso está oculto (portada / fundamentos)', async () => {
+  it('los atajos no actúan cuando el paso está oculto (portada)', async () => {
     const HiddenPage = () => (
       <div className="step" hidden>
         <SimulationPage />
@@ -412,32 +460,62 @@ describe('SimulationPage', () => {
     expect(container.querySelectorAll('.stage__vertex')).toHaveLength(before);
   });
 
-  it('el pintar aplica el color elegido con un solo clic', async () => {
+  it('el dígito del teclado pinta el vértice seleccionado (y Ctrl+Z lo deshace)', async () => {
     await render();
 
-    const paintTool = [...container.querySelectorAll('.toolbar__button')].find((b) =>
-      b.textContent.includes('Pintar')
-    );
-    await act(async () => {
-      paintTool.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    const fill = () =>
+      container.querySelector('.stage__vertex .stage__node').getAttribute('fill');
 
-    // Se activan los swatches
-    expect(container.querySelectorAll('.swatch').length).toBeGreaterThanOrEqual(3);
-    const swatch = container.querySelectorAll('.swatch')[2];
-    await act(async () => {
-      swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const before = container.querySelector('.stage__vertex .stage__node').getAttribute('fill');
+    // Clic izquierdo → selecciona el vértice (también es el gesto de arrastre)
     await act(async () => {
       container
         .querySelector('.stage__vertex')
         .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
     });
-    const after = container.querySelector('.stage__vertex .stage__node').getAttribute('fill');
 
-    expect(before).not.toBe(after);
+    const before = fill();
+
+    // "2" → color C₂
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }));
+    });
+    expect(fill()).not.toBe(before);
+
+    // Ctrl+Z lo revierte
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
+      );
+    });
+    expect(fill()).toBe(before);
+  });
+
+  it('dos clics en vértices distintos (des)conectan la arista entre ellos', async () => {
+    await render();
+
+    const edges = () => container.querySelectorAll('.stage__edges .stage__edge').length;
+
+    // G₀ por defecto es K₆: hay 15 aristas
+    const before = edges();
+    expect(before).toBe(15);
+
+    const vertices = [...container.querySelectorAll('.stage__vertex')];
+    await act(async () => {
+      vertices[0].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    await act(async () => {
+      vertices[1].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+
+    // La arista {0,1} se borra: 15 → 14 (Ctrl+Z la devuelve)
+    expect(edges()).toBe(before - 1);
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
+      );
+    });
+    expect(edges()).toBe(before);
   });
 
   it('avanza la cadena y el Inspector deja de mostrar el aviso', async () => {
