@@ -16,6 +16,18 @@ export const COLOR_PALETTE = [
 /** Colores formales de las tres condiciones iniciales del experimento. */
 export const CONDITION_COLORS = ['#d1495b', '#e0a458', '#6b9ac4'];
 
+/** Paleta para las marginales de posición (una por vértice). */
+export const POSITION_COLORS = [
+  '#d1495b',
+  '#e0a458',
+  '#6b9ac4',
+  '#7fb069',
+  '#b57bb5',
+  '#f0a8c0',
+  '#4fb3bf',
+  '#c9a227',
+];
+
 export function colorOf(index) {
   return COLOR_PALETTE[index % COLOR_PALETTE.length];
 }

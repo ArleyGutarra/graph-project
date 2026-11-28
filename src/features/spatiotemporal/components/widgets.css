@@ -1,0 +1,768 @@
+/* ============================================================
+   Piezas nuevas de la maqueta: cabeceras con chips, barra de
+   herramientas del lienzo, transportes, tarjeta de estimación
+   de π*, inspector detallado y rejilla de validación.
+   ============================================================ */
+
+/* ---------- Cabeceras de panel ---------- */
+
+.panel__head-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel__preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #a5a2ad;
+}
+
+.panel__preset select {
+  padding: 5px 9px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: #a5a2ad;
+}
+
+.chip strong {
+  color: #e6e5ea;
+}
+
+.chip.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Escenario: lienzo relativo + renombrado en línea ---------- */
+
+.stage__canvas {
+  position: relative;
+}
+
+.stage__rename {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 82px;
+  padding: 4px 6px;
+  text-align: center;
+  background: #0b0a0e;
+  border: 1px solid var(--red-soft);
+  border-radius: 7px;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  box-shadow: 0 0 14px rgba(163, 22, 42, 0.55);
+  z-index: 3;
+}
+
+.stage__shortcuts {
+  color: #6f6a7a;
+  font-size: 10.5px;
+  font-family: var(--mono);
+}
+
+/* ---------- Barra de herramientas (vista 1) ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+}
+
+.toolbar__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.toolbar__button {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0b0a0e;
+  color: #b9b5c4;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.toolbar__button:hover {
+  border-color: #3d3946;
+  color: #fff;
+}
+
+.toolbar__button.is-active {
+  background: var(--red-soft);
+  border-color: var(--red-soft);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(163, 22, 42, 0.45);
+}
+
+.toolbar__swatches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0b0a0e;
+  color: #b9b5c4;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.swatch i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.swatch.is-active {
+  border-color: #fff;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbar--map {
+  gap: 10px 18px;
+}
+
+.toolbar__opacity {
+  width: 110px;
+  height: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #2a2732;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.toolbar__opacity::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--red-soft);
+  border: 2px solid #0b0a0e;
+}
+
+.toolbar__upload {
+  margin-left: auto;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0b0a0e;
+  color: #b9b5c4;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.toolbar__upload:hover {
+  border-color: #3d3946;
+  color: #fff;
+}
+
+.toolbar__upload input {
+  display: none;
+}
+
+/* ---------- Transporte ---------- */
+
+.transport__spacer {
+  flex: 1 1 auto;
+}
+
+.playback__busy {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #f0c07a;
+}
+
+/* ---------- Gráficas: cabecera con pista + clic/zoom ---------- */
+
+.chart__head-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.chart__head-left .chart__hint {
+  fill: none;
+  color: #7f7a8a;
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 11px;
+}
+
+.chart__svg--seekable {
+  cursor: crosshair;
+}
+
+/* ---------- Tarjeta de estimación empírica de π* ---------- */
+
+.estimate-card {
+  padding: 11px 13px 13px;
+  background: linear-gradient(180deg, rgba(17, 15, 21, 0.87), rgba(10, 9, 13, 0.93));
+  border: 1px solid rgba(184, 28, 49, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.estimate-card__head h3 {
+  margin: 0 0 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #ff8a97;
+}
+
+.estimate-card__line {
+  margin: 0 0 7px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: #a5a2ad;
+}
+
+.estimate-card__line strong {
+  color: #e6e5ea;
+}
+
+.estimate-card__colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #c4c1cc;
+}
+
+.estimate-card__colors span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estimate-card__colors i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ---------- Rejilla de validación de hipótesis ---------- */
+
+.validator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 7px;
+}
+
+.validator-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.validator-item strong {
+  font-size: 13px;
+}
+
+.validator-item.is-ok {
+  background: rgba(64, 190, 120, 0.12);
+  border-color: rgba(64, 190, 120, 0.42);
+  color: #7ee0a8;
+}
+
+.validator-item.is-bad {
+  background: rgba(184, 28, 49, 0.16);
+  border-color: rgba(184, 28, 49, 0.55);
+  color: #ff8a97;
+}
+
+/* ---------- Tarjetas de configuración ---------- */
+
+.config-card__grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 4px 16px;
+}
+
+.config-card__wide {
+  width: 100%;
+}
+
+.config-card__note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #7f7a8a;
+}
+
+/* ---------- Escenario: etiquetas y estados de las herramientas ---------- */
+
+.stage__pos-label {
+  fill: #9a97a3;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.stage__svg--tool {
+  cursor: crosshair;
+}
+
+.stage__hover-pos {
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  pointer-events: none;
+}
+
+.stage__edge-hits line {
+  stroke: transparent;
+  stroke-width: 18;
+  stroke-linecap: round;
+  cursor: pointer;
+}
+
+.stage__vertex {
+  cursor: pointer;
+  outline: none;
+}
+
+.stage__vertex.is-pending .stage__node {
+  stroke: #fff;
+  stroke-width: 3.5;
+}
+
+.stage__vertex:focus-visible .stage__node {
+  stroke: #fff;
+  stroke-width: 3.5;
+}
+
+.stage__node-focus {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  opacity: 0.9;
+}
+
+.stage__legend-sep {
+  width: 1px;
+  height: 13px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.stage__legend-ring {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2.5px solid #ff2d3f;
+  background: transparent;
+}
+
+.stage__legend-line--edge {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--red);
+}
+
+/* ---------- Inspector detallado ---------- */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.inspector__block {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 13px 13px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+
+.inspector__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.inspector__head h3 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #e6e5ea;
+}
+
+.inspector__num {
+  color: #ff8a97;
+  font-weight: 700;
+}
+
+.inspector__meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #7f7a8a;
+}
+
+.inspector__caption {
+  margin: 0;
+  font-size: 12px;
+  color: #a5a2ad;
+}
+
+.inspector__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip-card {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 128px;
+  padding: 6px 10px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.chip-card--wide {
+  min-width: 0;
+  align-self: flex-start;
+}
+
+.chip-card__formula {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #e6e5ea;
+}
+
+.chip-card em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #6f6a7a;
+}
+
+.inspector__events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.event-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #0b0a0e;
+  border: 1px solid var(--line-soft);
+}
+
+.event-row.is-change {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.event-row__formula {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #d6d3dd;
+}
+
+.event-row__formula strong {
+  color: #e6e5ea;
+}
+
+.event-row__meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #6f6a7a;
+}
+
+.badge {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge--ok {
+  background: rgba(64, 190, 120, 0.14);
+  border-color: rgba(64, 190, 120, 0.45);
+  color: #7ee0a8;
+}
+
+.badge--muted {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #9a97a3;
+}
+
+.inspector__vselect {
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6e5ea;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.inspector__vselect:hover {
+  border-color: var(--red-soft);
+}
+
+.inspector__quick-button i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 760px) {
+  .toolbar__swatches,
+  .toolbar__upload {
+    margin-left: 0;
+  }
+
+  .transport__spacer {
+    display: none;
+  }
+}
+
+/* ---------- Arrastre libre de las posiciones xᵢ ---------- */
+
+.stage__svg--dragging {
+  cursor: grabbing;
+}
+
+.stage__svg--tool .stage__vertex {
+  cursor: grab;
+}
+
+.stage__svg--dragging .stage__vertex {
+  cursor: grabbing;
+}
+
+.stage__croquis-pos {
+  cursor: grab;
+}
+
+.stage__svg--dragging .stage__croquis-pos {
+  cursor: grabbing;
+}
+
+/* ============================================================
+   PANEL DE ANÁLISIS · una sola sección + columna del Inspector
+   redimensionable (se abre/cierra arrastrando el divisor "↔")
+   ============================================================ */
+
+.panel--analysis {
+  min-width: 0;
+}
+
+.analysis {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.analysis__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.analysis__section {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a8757b;
+}
+
+/* --- Divisor ---------------------------------------------------------- */
+
+.analysis__splitter {
+  position: relative;
+  flex: 0 0 16px;
+  display: grid;
+  place-items: center;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.analysis__splitter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line);
+  transition: background 0.15s, width 0.15s;
+}
+
+.analysis__splitter:hover::before,
+.analysis__splitter:focus-visible::before {
+  width: 2px;
+  background: var(--red-soft);
+}
+
+.analysis__grip {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 36px;
+  border-radius: 8px;
+  background: #0b0a0e;
+  border: 1px solid var(--line);
+  color: #9a97a3;
+  font-size: 10px;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.analysis__splitter:hover .analysis__grip,
+.analysis__splitter:focus-visible .analysis__grip {
+  border-color: var(--red-soft);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(163, 22, 42, 0.45);
+}
+
+/* --- Columna del Inspector -------------------------------------------- */
+
+.analysis__inspector {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line-soft);
+  overflow-y: auto;
+}
+
+.analysis__inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.analysis__close {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9a97a3;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.analysis__close:hover {
+  border-color: var(--red-soft);
+  color: #fff;
+}
+
+/* Con el Inspector abierto el escenario cede sitio a las gráficas y a la
+   columna (sólo en pantallas donde la rejilla va en dos columnas). */
+@media (min-width: 1181px) {
+  .simulation.has-inspector .cell--stage {
+    grid-column: span 4;
+  }
+
+  .simulation.has-inspector .cell--side {
+    grid-column: span 8;
+  }
+}

@@ -1,10 +1,16 @@
 /**
  * Estados iniciales del grafo temporal G_0 y de su coloración.
  *
- * Los presets reproduzcan los estados del póster (sección 04):
- *   π₀⁽¹⁾ = K₆ con coloración unánime C₁,
- *   π₀⁽²⁾ = K₁,₅ con coloración unánime C₂,
- *   π₀⁽³⁾ = K₆ con coloración unánime C₀.
+ * Los tres presets reproduzcan los estados del póster (sección 04, pie de la
+ * figura "Invariancia frente a π₀"):
+ *   π₀⁽¹⁾ = K̄ₙ (grafo vacío, complemento de Kₙ) con coloración unánime C₁,
+ *   π₀⁽²⁾ = K₁,ₙ₋₁ con coloración unánime C₂,
+ *   π₀⁽³⁾ = Kₙ con coloración unánime C₀.
+ *
+ * Nota: el texto extraído del PDF muestra "G⁽¹⁾₀ = K₆" y "G⁽³⁾₀ = K₆" con el
+ * MISMO glifo, porque una barra de complemento (K̄₆) no se extrae como texto.
+ * Se adopta la lectura K̄ₙ para la primera condición: son los tres estados de
+ * partida distintos que exige la verificación de independencia de π₀.
  */
 
 export const GRAPH_PRESETS = [
@@ -54,7 +60,7 @@ export { sub as subscript };
  * @param {ReturnType<import('../../../shared/math/rng').createRng>} rng
  */
 export function createInitialState(
-  { n, m, colorCount, graphPreset, colorPreset, positionPreset },
+  { n, m, colorCount, graphPreset, colorPreset, positionPreset, custom },
   rng
 ) {
   const adj = new Int32Array(n);
@@ -65,6 +71,12 @@ export function createInitialState(
   };
 
   switch (graphPreset) {
+    case 'custom':
+      // G₀ editado con las herramientas de la vista Configurar.
+      for (const [i, j] of custom?.edges ?? []) {
+        if (i !== j && i >= 0 && i < n && j >= 0 && j < n) addEdge(i, j);
+      }
+      break;
     case 'complete':
       for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) addEdge(i, j);
       break;
@@ -83,7 +95,12 @@ export function createInitialState(
   }
 
   const color = new Uint8Array(n);
-  if (colorPreset.startsWith('unanimous')) {
+  if (colorPreset === 'custom' && custom?.colors) {
+    for (let v = 0; v < n; v++) {
+      const value = Number(custom.colors[v]);
+      color[v] = Number.isFinite(value) ? Math.min(Math.max(0, value), colorCount - 1) : 0;
+    }
+  } else if (colorPreset.startsWith('unanimous')) {
     const idx = Number(colorPreset.slice('unanimous'.length)) || 0;
     const value = Math.min(idx, colorCount - 1);
     color.fill(value);
@@ -94,7 +111,14 @@ export function createInitialState(
   }
 
   const pos = new Uint8Array(n);
-  if (positionPreset === 'random') {
+  if (positionPreset === 'custom' && custom?.positions) {
+    for (let v = 0; v < n; v++) {
+      const value = Number(custom.positions[v]);
+      pos[v] = Number.isFinite(value)
+        ? Math.min(Math.max(0, value), Math.max(0, m - 1))
+        : v % Math.max(1, m);
+    }
+  } else if (positionPreset === 'random') {
     const slots = rng.shuffle(Array.from({ length: m }, (_, i) => i));
     for (let v = 0; v < n; v++) pos[v] = slots[v % m];
   } else {
@@ -113,8 +137,9 @@ export function buildConditions(colorCount) {
   return [
     {
       id: 'pi1',
-      label: `π₀⁽¹⁾: Kₙ + C${sub(1)}`,
-      graphPreset: 'complete',
+      // Complemento de Kₙ: ninguna arista (ver nota al inicio del archivo).
+      label: `π₀⁽¹⁾: K̄ₙ + C${sub(1)}`,
+      graphPreset: 'empty',
       colorPreset: `unanimous${Math.min(1, high)}`,
     },
     {

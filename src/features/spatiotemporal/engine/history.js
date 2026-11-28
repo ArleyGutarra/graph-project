@@ -25,6 +25,13 @@ export class HistoryBuffer {
     this.stride *= 2;
   }
 
+  /** Descarta las muestras posteriores a `t` (al retroceder con el scrubber). */
+  trimAfter(t) {
+    let kept = this.points.length;
+    while (kept > 0 && this.points[kept - 1].t > t) kept -= 1;
+    if (kept < this.points.length) this.points.length = kept;
+  }
+
   clear() {
     this.points = [];
     this.stride = 1;

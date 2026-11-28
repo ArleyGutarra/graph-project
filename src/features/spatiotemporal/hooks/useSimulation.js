@@ -18,14 +18,18 @@ export const DEFAULT_CONFIG = {
   colorPreset: 'unanimous0',
   positionPreset: 'identity',
   seed: 2026,
-  // Reproducción
-  speed: 3, // pasos por cuadro
+  // Reproducción (velocidad en pasos por segundo, como en la maqueta)
+  speed: 2,
+  subphase: 'plus', // micro-paso mostrado: 'minus' (t⁻) o 'plus' (t⁺)
+  showDiff: true, // resaltar aristas añadidas/eliminadas en la vista Simular
+  g0: null, // G₀ editado a mano con las herramientas de la vista Configurar
+  // Vista
+  windowSteps: 0, // ventana temporal de las series (0 = automática)
+  fastSteps: 1000, // T del botón "Ejecutar T pasos rápido"
   // Experimento de ergodicidad
   chainsPerCondition: 10,
   experimentSteps: 3000,
 };
-
-const FPS = 30;
 
 /**
  * Orquestación de la simulación (capa de aplicación).
@@ -45,6 +49,8 @@ export function useSimulation() {
   const [, tick] = useReducer((count) => count + 1, 0);
   const [experiment, setExperiment] = useState({ status: 'idle', progress: 0, result: null });
   const experimentRef = useRef(null);
+  const [fastRun, setFastRun] = useState({ status: 'idle', progress: 0 });
+  const fastRef = useRef({ active: false, total: 0, done: 0 });
 
   const sketch = useMemo(
     () =>
@@ -56,9 +62,14 @@ export function useSimulation() {
     [config.sketchType, config.sketchSize, config.colorCount]
   );
 
+  // Vértices de G: si hay un G₀ editado, su longitud; si no, n = m.
+  // Mantenerlos separados es lo que permite borrar/añadir vértices sin mover
+  // el anillo de posiciones de X.
+  const vertexCount = config.g0?.positions?.length ?? config.sketchSize;
+
   const model = useMemo(
-    () => createModel({ sketch, k: config.k, alpha: config.alpha }),
-    [sketch, config.k, config.alpha]
+    () => createModel({ sketch, k: config.k, alpha: config.alpha, n: vertexCount }),
+    [sketch, config.k, config.alpha, vertexCount]
   );
 
   // `resetToken` obliga a reconstruir la cadena (botón "Reiniciar"); se
@@ -69,15 +80,17 @@ export function useSimulation() {
       model,
       seed: config.seed,
       initial: {
-        graphPreset: config.graphPreset,
-        colorPreset: config.colorPreset,
-        positionPreset: config.positionPreset,
+        graphPreset: config.g0 ? 'custom' : config.graphPreset,
+        colorPreset: config.g0 ? 'custom' : config.colorPreset,
+        positionPreset: config.g0 ? 'custom' : config.positionPreset,
+        custom: config.g0,
       },
     });
   }, [
     resetToken,
     model,
     config.seed,
+    config.g0,
     config.graphPreset,
     config.colorPreset,
     config.positionPreset,
@@ -103,29 +116,107 @@ export function useSimulation() {
     tick();
   }, [chain]);
 
+  /** Avanza `count` pasos de golpe (botones −5 / +5 del transporte). */
+  const stepBy = useCallback(
+    (count) => {
+      if (count > 0) chain.stepBy(count);
+      else if (count < 0) chain.seek(chain.t + count);
+      tick();
+    },
+    [chain]
+  );
+
+  /** Salta a un instante concreto del scrubber. */
+  const seek = useCallback(
+    (target) => {
+      if (chain.seek(target)) tick();
+    },
+    [chain]
+  );
+
+  /** Botón |◀ : vuelve al fotograma más antiguo retenido. */
+  const rewind = useCallback(() => {
+    if (chain.rewind()) tick();
+  }, [chain]);
+
   const togglePlay = useCallback(() => setPlaying((value) => !value), []);
 
   const stop = useCallback(() => setPlaying(false), []);
 
-  // --- Bucle de reproducción -------------------------------------------------
+  // --- Bucle de reproducción (velocidad en pasos por segundo) ---------------
   useEffect(() => {
     if (!playing) return undefined;
 
     let rafId = 0;
     let last = 0;
-    const interval = 1000 / FPS;
+    let accumulated = 0;
 
     const loop = (now) => {
       rafId = requestAnimationFrame(loop);
-      if (now - last < interval) return;
+      if (last === 0) {
+        last = now;
+        return;
+      }
+      const dt = Math.min(0.25, (now - last) / 1000);
       last = now;
-      for (let i = 0; i < config.speed; i++) chain.step();
+      accumulated += dt * config.speed;
+
+      const steps = Math.floor(accumulated);
+      if (steps <= 0) return;
+      accumulated -= steps;
+      for (let i = 0; i < steps; i++) chain.step(i === steps - 1);
       tick();
     };
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
   }, [playing, chain, config.speed]);
+
+  // --- "Ejecutar T pasos rápido" -------------------------------------------
+  // Avanza la cadena en vivo T pasos en trozos de ~20 ms: la barra de
+  // progreso se actualiza y la interfaz no se congela.
+  const runFast = useCallback((total) => {
+    fastRef.current = { active: true, total, done: 0 };
+    setFastRun({ status: 'running', progress: 0 });
+  }, []);
+
+  const cancelFast = useCallback(() => {
+    fastRef.current.active = false;
+    setFastRun((current) => ({ ...current, status: 'idle', progress: 0 }));
+  }, []);
+
+  useEffect(() => {
+    if (fastRun.status !== 'running') return undefined;
+
+    let rafId = 0;
+    const loop = () => {
+      const ref = fastRef.current;
+      if (!ref.active) {
+        setFastRun({ status: 'idle', progress: 0 });
+        return;
+      }
+
+      const started = performance.now();
+      while (performance.now() - started < 20 && ref.done < ref.total) {
+        chain.step(false); // sin detalle: T puede ser 10⁶
+        ref.done += 1;
+      }
+
+      if (ref.done >= ref.total) {
+        ref.active = false;
+        tick();
+        setFastRun({ status: 'done', progress: 1 });
+        return;
+      }
+
+      tick();
+      setFastRun({ status: 'running', progress: ref.done / ref.total });
+      rafId = requestAnimationFrame(loop);
+    };
+
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [fastRun.status, chain]);
 
   // --- Experimento de ergodicidad -------------------------------------------
   const runExperiment = useCallback(() => {
@@ -174,11 +265,18 @@ export function useSimulation() {
     reset,
     sketch,
     model,
+    vertexCount,
     chain,
     playing,
     togglePlay,
     stop,
     stepOnce,
+    stepBy,
+    seek,
+    rewind,
+    fastRun,
+    runFast,
+    cancelFast,
     conditions,
     experiment,
     runExperiment,
